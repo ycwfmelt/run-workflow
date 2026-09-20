@@ -26,11 +26,94 @@ const openOptionsBtn = document.getElementById("openOptionsBtn") as HTMLButtonEl
 const bannerSettingsBtn = document.getElementById("bannerSettingsBtn") as HTMLButtonElement;
 const apiKeyBanner = document.getElementById("apiKeyBanner") as HTMLElement;
 
+// S2 / Ollama Status DOM elements
+const s2StatusBadge = document.getElementById("s2StatusBadge") as HTMLElement;
+const s2StatusText = document.getElementById("s2StatusText") as HTMLElement;
+const s2Banner = document.getElementById("s2Banner") as HTMLElement;
+const s2BannerTitle = document.getElementById("s2BannerTitle") as HTMLElement;
+const s2BannerDesc = document.getElementById("s2BannerDesc") as HTMLElement;
+const s2RetryBtn = document.getElementById("s2RetryBtn") as HTMLButtonElement;
+const s2SettingsBtn = document.getElementById("s2SettingsBtn") as HTMLButtonElement;
+let lastS2HealthStatus: string = "unknown";
+
 const saveWorkflowBanner = document.getElementById("saveWorkflowBanner") as HTMLElement;
 const saveWorkflowDesc = document.getElementById("saveWorkflowDesc") as HTMLElement;
 const saveWorkflowBtn = document.getElementById("saveWorkflowBtn") as HTMLButtonElement;
 
 let cachedApiKey = "";
+
+async function checkS2Status() {
+  if (s2StatusBadge) {
+    s2StatusBadge.className = "s2-badge s2-unknown";
+    s2StatusText.textContent = "S2: 检测中...";
+  }
+
+  try {
+    const res: any = await chrome.runtime.sendMessage({ type: "CHECK_S2_STATUS" });
+    if (!res || !res.health) {
+      updateS2UI({
+        status: "offline",
+        message: "无法连接到后台诊断服务",
+        actionHint: "请刷新插件或重新打开侧边栏。",
+        endpoint: "",
+        model: "",
+      });
+      return;
+    }
+    updateS2UI(res.health);
+  } catch (err: any) {
+    updateS2UI({
+      status: "error",
+      message: err?.message || "检测失败",
+      actionHint: "请检查系统网络与服务运行状态。",
+      endpoint: "",
+      model: "",
+    });
+  }
+}
+
+function updateS2UI(health: any) {
+  lastS2HealthStatus = health.status;
+
+  if (health.status === "online") {
+    s2StatusBadge.className = "s2-badge s2-online";
+    s2StatusBadge.title = `S2 服务在线\n端点: ${health.endpoint}\n模型: ${health.model}\n延迟: ${health.latencyMs || "--"}ms\n(点击重新检测)`;
+    s2StatusText.textContent = `S2: 在线 (${health.latencyMs ? health.latencyMs + "ms" : "OK"})`;
+    s2Banner.style.display = "none";
+  } else if (health.status === "offline") {
+    s2StatusBadge.className = "s2-badge s2-offline";
+    s2StatusBadge.title = `S2 服务离线 (未启动)\n端点: ${health.endpoint}\n${health.message}\n(点击重新检测)`;
+    s2StatusText.textContent = "S2: 离线 🔴";
+    s2Banner.style.display = "flex";
+    s2BannerTitle.textContent = "🔴 S2 (Ollama) 服务未运行";
+    s2BannerDesc.textContent = `${health.message}。\n💡 解决建议：${health.actionHint || "请在终端执行 'ollama serve'。"}`;
+  } else if (health.status === "cors_blocked") {
+    s2StatusBadge.className = "s2-badge s2-warn";
+    s2StatusBadge.title = `S2 跨域受阻 (403 Forbidden)\n端点: ${health.endpoint}\n${health.message}\n(点击重新检测)`;
+    s2StatusText.textContent = "S2: 跨域受阻 ⚠️";
+    s2Banner.style.display = "flex";
+    s2BannerTitle.textContent = "⚠️ S2 (Ollama) 跨域受阻 (403 Forbidden)";
+    s2BannerDesc.textContent = `${health.message}。\n💡 解决建议：${health.actionHint || '终端执行 OLLAMA_ORIGINS="*" ollama serve'}`;
+  } else if (health.status === "auth_error") {
+    s2StatusBadge.className = "s2-badge s2-warn";
+    s2StatusBadge.title = `S2 鉴权失败 (401)\n${health.message}\n(点击重新检测)`;
+    s2StatusText.textContent = "S2: 鉴权失败 ⚠️";
+    s2Banner.style.display = "flex";
+    s2BannerTitle.textContent = "⚠️ S2 鉴权失败 (401 Unauthorized)";
+    s2BannerDesc.textContent = `${health.message}。\n💡 解决建议：${health.actionHint || "请前往设置检查 API Key。"}`;
+  } else {
+    s2StatusBadge.className = "s2-badge s2-offline";
+    s2StatusBadge.title = `S2 服务异常: ${health.message}\n(点击重新检测)`;
+    s2StatusText.textContent = "S2: 异常 ⚠️";
+    s2Banner.style.display = "flex";
+    s2BannerTitle.textContent = "⚠️ S2 服务异常";
+    s2BannerDesc.textContent = `${health.message}。\n💡 解决建议：${health.actionHint || "请检查模型设置。"}`;
+  }
+}
+
+s2StatusBadge?.addEventListener("click", checkS2Status);
+s2RetryBtn?.addEventListener("click", checkS2Status);
+s2SettingsBtn?.addEventListener("click", openOptions);
 
 saveWorkflowBtn?.addEventListener("click", () => {
   saveWorkflowBtn.textContent = "正在保存...";
@@ -146,6 +229,7 @@ chrome.storage.onChanged?.addListener((changes, area) => {
     if (newConfig) {
       cachedApiKey = (newConfig.typesafeApiKey || "").trim();
       apiKeyBanner.style.display = cachedApiKey ? "none" : "flex";
+      checkS2Status();
     }
   }
 });
@@ -174,6 +258,9 @@ async function init() {
 
   // Load matching workflows for active tab
   loadMatchingWorkflows();
+
+  // Actively check S2 / Ollama health status
+  checkS2Status();
 }
 
 async function loadMatchingWorkflows() {
@@ -237,6 +324,14 @@ startBtn.addEventListener("click", () => {
   if (!cachedApiKey) {
     alert("请先配置 TypeSafe API Key！已为您打开设置页面。");
     openOptions();
+    return;
+  }
+  if (lastS2HealthStatus === "offline") {
+    alert("无法启动自动化：本地 Ollama 服务处于离线状态！\n请先在系统终端执行 'ollama serve' 启动服务。");
+    return;
+  }
+  if (lastS2HealthStatus === "cors_blocked") {
+    alert("无法启动自动化：Ollama 拒绝跨域通信 (403 Forbidden)！\n请在终端执行 'OLLAMA_ORIGINS=\"*\" ollama serve' 启动。");
     return;
   }
   saveWorkflowBanner.style.display = "none";

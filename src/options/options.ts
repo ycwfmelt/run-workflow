@@ -4,6 +4,7 @@ import {
   matchUrlRule,
 } from "../workflows/workflow-registry.js";
 import { WorkflowDefinition } from "../workflows/types.js";
+import { checkS2Health } from "../shared/s2-health.js";
 
 // DOM Elements - Settings
 const typesafeApiKey = document.getElementById("typesafeApiKey") as HTMLInputElement;
@@ -330,37 +331,24 @@ async function deleteWorkflowFromBackend(id: string) {
 testOllamaBtn.addEventListener("click", async () => {
   ollamaFeedback.style.display = "block";
   ollamaFeedback.className = "test-feedback";
-  ollamaFeedback.textContent = "正在测试连接到 Ollama 服务...";
+  ollamaFeedback.textContent = "正在测试连接到 S2 / Ollama 服务...";
 
-  const endpoint = (systemTwoEndpoint.value || "http://localhost:11434/v1").replace(/\/+$/, "");
-  const testUrl = `${endpoint}/models`;
+  const endpoint = systemTwoEndpoint.value.trim() || "http://localhost:11434/v1";
+  const model = systemTwoModel.value.trim() || "deepseek-v4.1-flash:cloud";
+  const health = await checkS2Health(endpoint, model);
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-  try {
-    const res = await fetch(testUrl, {
-      method: "GET",
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (res.ok) {
-      const data = await res.json().catch(() => ({}));
-      const models = Array.isArray(data.data) ? data.data.map((m: any) => m.id) : [];
-      const hasDeepseek = models.some((m: string) => m.includes("deepseek"));
-      ollamaFeedback.className = "test-feedback feedback-ok";
-      ollamaFeedback.textContent = hasDeepseek
-        ? `🟢 Ollama 运行正常，已检测到 DeepSeek 模型！(总计 ${models.length} 个模型)`
-        : `🟢 Ollama 运行正常，响应成功。(服务在线，模型列表已读取)`;
-    } else {
-      ollamaFeedback.className = "test-feedback feedback-warn";
-      ollamaFeedback.textContent = `🟡 Ollama 响应 HTTP ${res.status}。若离线将自动平滑降级至内置智能规则规划器。`;
-    }
-  } catch (err: any) {
-    clearTimeout(timeoutId);
+  if (health.status === "online") {
+    ollamaFeedback.className = "test-feedback feedback-ok";
+    ollamaFeedback.textContent = `🟢 ${health.message}！(延迟 ${health.latencyMs}ms，检测到 ${health.availableModels?.length || 0} 个本地模型)`;
+  } else if (health.status === "offline") {
     ollamaFeedback.className = "test-feedback feedback-warn";
-    ollamaFeedback.textContent = `🟡 无法连接到 ${endpoint} (${err.message})。若未开启 Ollama 服务，系统将自动使用内置智能规则规划器，零依赖正常运行。`;
+    ollamaFeedback.textContent = `🔴 ${health.message}。\n解决建议：${health.actionHint}`;
+  } else if (health.status === "cors_blocked") {
+    ollamaFeedback.className = "test-feedback feedback-warn";
+    ollamaFeedback.textContent = `⚠️ ${health.message}。\n解决建议：${health.actionHint}`;
+  } else {
+    ollamaFeedback.className = "test-feedback feedback-warn";
+    ollamaFeedback.textContent = `⚠️ ${health.message}。\n解决建议：${health.actionHint || "请检查配置。"}`;
   }
 });
 

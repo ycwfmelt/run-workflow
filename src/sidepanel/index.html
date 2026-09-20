@@ -78,6 +78,35 @@
     .status-completed { background: #064e3b; color: #34d399; }
     .status-failed { background: #7f1d1d; color: #fca5a5; }
 
+    .s2-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+      border: 1px solid transparent;
+    }
+    .s2-badge:hover { filter: brightness(1.15); }
+    .s2-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .s2-online { background: #064e3b; color: #6ee7b7; border-color: #059669; }
+    .s2-online .s2-status-dot { background: #10b981; box-shadow: 0 0 6px #10b981; }
+    .s2-offline { background: #7f1d1d; color: #fca5a5; border-color: #dc2626; }
+    .s2-offline .s2-status-dot { background: #ef4444; }
+    .s2-warn { background: #78350f; color: #fcd34d; border-color: #d97706; }
+    .s2-warn .s2-status-dot { background: #f59e0b; }
+    .s2-unknown { background: #334155; color: #94a3b8; border-color: #475569; }
+    .s2-unknown .s2-status-dot { background: #94a3b8; }
+
     main {
       flex: 1;
       padding: 12px;
@@ -316,6 +345,10 @@
       <span class="brand-badge">Pilot</span>
     </div>
     <div class="header-right">
+      <div id="s2StatusBadge" class="s2-badge s2-unknown" title="S2 (Ollama) 模型服务状态，点击刷新检测">
+        <span class="s2-status-dot"></span>
+        <span id="s2StatusText">S2: 检测中...</span>
+      </div>
       <div id="statusBadge" class="status-badge status-idle">IDLE</div>
       <button id="openOptionsBtn" class="btn-icon" title="打开全局配置 (API Key / 模型设置)">⚙️</button>
       <button id="closeSidePanelBtn" class="btn-icon" title="关闭侧边栏" style="font-size: 14px; font-weight: bold; line-height: 1; padding: 4px 7px;">✕</button>
@@ -330,6 +363,20 @@
         <div style="font-size: 11px; color: #fde68a; margin-top: 2px;">请先配置 API Key 以启用 System One 决策</div>
       </div>
       <button id="bannerSettingsBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap; background: #d97706; color: #fff; border: none;">前往设置 ⚙️</button>
+    </div>
+
+    <!-- S2 / Ollama Status Warning Banner -->
+    <div id="s2Banner" class="api-key-banner" style="display: none; background: #450a0a; border: 1px solid #dc2626;">
+      <div style="flex: 1; min-width: 0;">
+        <div id="s2BannerTitle" style="font-weight: 600; font-size: 12px; color: #fca5a5;">🔴 S2 (Ollama) 服务不可用</div>
+        <div id="s2BannerDesc" style="font-size: 11px; color: #fecaca; margin-top: 2px; line-height: 1.4;">
+          无法连接到本地 Ollama 服务。
+        </div>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <button id="s2RetryBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap; background: #991b1b; color: #fff; border: none;">🔄 重试</button>
+        <button id="s2SettingsBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap; background: #334155; color: #fff; border: none;">⚙️ 设置</button>
+      </div>
     </div>
 
     <!-- Task Input Card -->

@@ -3,13 +3,107 @@ import { loadConfig } from "../shared/storage.js";
 import { MessagePayload } from "../shared/types.js";
 import { WorkflowRegistry } from "../workflows/workflow-registry.js";
 import { OffscreenRunner } from "./offscreen-runner.js";
+import { checkS2Health } from "../shared/s2-health.js";
 
 let agentLoop: AgentLoop | null = null;
+
+async function setupOllamaCorsRules() {
+  if (!chrome.declarativeNetRequest?.updateDynamicRules) return;
+  try {
+    const rules: chrome.declarativeNetRequest.Rule[] = [
+      {
+        id: 11434,
+        priority: 1,
+        action: {
+          type: "modifyHeaders" as chrome.declarativeNetRequest.RuleActionType,
+          requestHeaders: [
+            {
+              header: "origin",
+              operation: "set" as chrome.declarativeNetRequest.HeaderOperation,
+              value: "http://localhost:11434",
+            },
+          ],
+          responseHeaders: [
+            {
+              header: "access-control-allow-origin",
+              operation: "set" as chrome.declarativeNetRequest.HeaderOperation,
+              value: "*",
+            },
+            {
+              header: "access-control-allow-methods",
+              operation: "set" as chrome.declarativeNetRequest.HeaderOperation,
+              value: "GET, POST, OPTIONS",
+            },
+            {
+              header: "access-control-allow-headers",
+              operation: "set" as chrome.declarativeNetRequest.HeaderOperation,
+              value: "*",
+            },
+          ],
+        },
+        condition: {
+          urlFilter: "||localhost:11434/",
+          resourceTypes: [
+            "xmlhttprequest" as chrome.declarativeNetRequest.ResourceType,
+            "other" as chrome.declarativeNetRequest.ResourceType,
+          ],
+        },
+      },
+      {
+        id: 11435,
+        priority: 1,
+        action: {
+          type: "modifyHeaders" as chrome.declarativeNetRequest.RuleActionType,
+          requestHeaders: [
+            {
+              header: "origin",
+              operation: "set" as chrome.declarativeNetRequest.HeaderOperation,
+              value: "http://127.0.0.1:11434",
+            },
+          ],
+          responseHeaders: [
+            {
+              header: "access-control-allow-origin",
+              operation: "set" as chrome.declarativeNetRequest.HeaderOperation,
+              value: "*",
+            },
+            {
+              header: "access-control-allow-methods",
+              operation: "set" as chrome.declarativeNetRequest.HeaderOperation,
+              value: "GET, POST, OPTIONS",
+            },
+            {
+              header: "access-control-allow-headers",
+              operation: "set" as chrome.declarativeNetRequest.HeaderOperation,
+              value: "*",
+            },
+          ],
+        },
+        condition: {
+          urlFilter: "||127.0.0.1:11434/",
+          resourceTypes: [
+            "xmlhttprequest" as chrome.declarativeNetRequest.ResourceType,
+            "other" as chrome.declarativeNetRequest.ResourceType,
+          ],
+        },
+      },
+    ];
+
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: [11434, 11435],
+      addRules: rules,
+    });
+  } catch (err) {
+    console.warn("[Ang] Failed to update declarativeNetRequest rules for Ollama CORS:", err);
+  }
+}
 
 // Initialize agent
 async function init() {
   const config = await loadConfig();
   agentLoop = new AgentLoop(config);
+
+  await setupOllamaCorsRules();
 
   // Watch for configuration changes in chrome.storage
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -124,6 +218,15 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
       case "SAVE_LAST_WORKFLOW": {
         const result = await agentLoop!.saveLastExecutedWorkflow();
         return result;
+      }
+      case "CHECK_S2_STATUS": {
+        const config = await loadConfig();
+        const health = await checkS2Health(
+          config.systemTwoEndpoint || "http://localhost:11434/v1",
+          config.systemTwoModel || "deepseek-v4.1-flash:cloud",
+          config.systemTwoApiKey || config.typesafeApiKey
+        );
+        return { success: true, health };
       }
       case "GET_STATE": {
         return {

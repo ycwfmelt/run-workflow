@@ -1,4 +1,5 @@
 import {
+  WorkflowContext,
   WorkflowDefinition,
   WorkflowFunction,
   WorkflowMeta,

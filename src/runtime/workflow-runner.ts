@@ -99,7 +99,7 @@ export class WorkflowRunner {
       getPage: async () => fetchPage(),
       wait: async (ms: number) => sleep(ms),
       scroll: async (dy: number) => cdp.scroll(dy),
-      step: (_label: string) => {},
+      step: (_label?: string) => {},
       args,
     };
 

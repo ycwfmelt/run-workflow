@@ -6,6 +6,7 @@ import { WorkflowCompiler } from "../workflows/compiler.js";
 import { WorkflowDefinition } from "../workflows/types.js";
 import { AgentKernel } from "../runtime/agent-kernel.js";
 import { WorkflowRunner } from "../runtime/workflow-runner.js";
+import { checkS2Health, diagnoseS2Error } from "../shared/s2-health.js";
 import { sleep } from "./bezier-mouse.js";
 
 export class AgentLoop {
@@ -194,6 +195,26 @@ export class AgentLoop {
         );
       } else {
         // Unknown task -> Run S2 Vercel AI SDK Autonomous Kernel Loop!
+        const s2Endpoint = this.config.systemTwoEndpoint || "http://localhost:11434/v1";
+        const s2Model = this.config.systemTwoModel || "deepseek-v4.1-flash:cloud";
+        const s2ApiKey = this.config.systemTwoApiKey || this.config.typesafeApiKey;
+
+        // Proactive health pre-check: Fail loudly if S2 / Ollama is offline or unavailable
+        const health = await checkS2Health(s2Endpoint, s2Model, s2ApiKey);
+        if (health.status !== "online") {
+          this.status = "failed";
+          this.log(
+            "S2 服务不可达",
+            "error",
+            0.0,
+            `无法连接到 S2 (Ollama) 服务 (${s2Endpoint})\n` +
+            `真实原因：${health.message}\n` +
+            `解决建议：${health.actionHint || "请检查 S2 服务与网络连接。"}`
+          );
+          this.broadcastState();
+          return;
+        }
+
         this.status = "running";
         this.broadcastState();
 
@@ -202,11 +223,11 @@ export class AgentLoop {
           prompt,
           pageState,
           this.cdp,
-          this.typesafeService,
           this.config,
           {
-            onLog: (phase, level, msg) => this.log(phase, level === "info" ? "success" : level, 1.0, msg),
-            onStepFinish: (step, toolCalls) => {
+            onLog: (phase: string, level: "info" | "success" | "warning" | "error", msg: string) =>
+              this.log(phase, level === "info" ? "success" : level, 1.0, msg),
+            onStepFinish: (step: number) => {
               this.currentStepIndex = step;
               this.broadcastState();
             },
@@ -230,7 +251,11 @@ export class AgentLoop {
       }
     } catch (err: any) {
       this.status = "failed";
-      this.log("Execution Error", "error", 0.0, err.message || String(err));
+      const s2Endpoint = this.config.systemTwoEndpoint || "http://localhost:11434/v1";
+      const s2Model = this.config.systemTwoModel || "deepseek-v4.1-flash:cloud";
+      const s2ApiKey = this.config.systemTwoApiKey || this.config.typesafeApiKey;
+      const diag = await diagnoseS2Error(err, s2Endpoint, s2Model, s2ApiKey);
+      this.log("S2 执行失败", "error", 0.0, diag);
     } finally {
       this.currentActiveLine = undefined;
       if (this.cdp) {
