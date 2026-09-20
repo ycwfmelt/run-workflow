@@ -8,7 +8,7 @@ import {
   MessagePayload,
 } from "../shared/types.js";
 import { sleep } from "./bezier-mouse.js";
-import { WorkflowRegistry } from "../workflows/workflow-registry.js";
+import { WorkflowRegistry, compileScriptToFunction } from "../workflows/workflow-registry.js";
 import { WorkflowCompiler } from "../workflows/compiler.js";
 import {
   WorkflowContext,
@@ -225,34 +225,15 @@ export class AgentLoop {
           1.0,
           `⚡ 命中了已保存的动态工作流 Recipe [${existingRecipe.meta.name}]，直接复用原生执行！`
         );
-        workflowToRun = existingRecipe;
+        this.lastExecutedWorkflow = existingRecipe;
+        this.activeWorkflowScript = existingRecipe.script;
+        this.currentActiveLine = 1;
+        this.status = "running";
+        this.broadcastState();
+        await this.executeWorkflowFunction(tabId, existingRecipe.fn);
       } else {
-        this.log(
-          "S2 代码生成",
-          "success",
-          1.0,
-          `正在由 S2 (${this.config.systemTwoModel || "deepseek-v4.1-flash:cloud"}) 根据页面上下文实时编写动态工作流 JavaScript 脚本...`
-        );
-        workflowToRun = await WorkflowCompiler.compile(prompt, pageState, this.config);
-        this.log(
-          "工作流就绪",
-          "success",
-          1.0,
-          `🚀 动态工作流编写完成 [${workflowToRun.meta.name}]: "${workflowToRun.meta.description}"`
-        );
-      }
-
-      this.lastExecutedWorkflow = workflowToRun;
-      this.activeWorkflowScript = workflowToRun.script;
-      this.currentActiveLine = 1;
-      this.status = "running";
-      this.broadcastState();
-
-      // 5. Execute compiled dynamic workflow function
-      if (workflowToRun.fn) {
-        await this.executeWorkflowFunction(tabId, workflowToRun.fn);
-      } else {
-        throw new Error("工作流脚本编译失败，未生成有效执行函数");
+        // Unknown task -> Run S2 Supervisor State Machine Exploration!
+        await this.runSupervisorStateLoop(tabId, prompt, pageState);
       }
     } catch (err: any) {
       this.status = "failed";
@@ -268,6 +249,238 @@ export class AgentLoop {
       }
       this.broadcastState();
     }
+  }
+
+  /**
+   * Phase 1: S2 Supervisor State Machine Exploration
+   * Advances the browser through state transitions (S_0 -> S_1 -> S_2 ...) driven by S1,
+   * with S2 Supervisor verifying overall task progress and goal attainment.
+   */
+  async runSupervisorStateLoop(
+    tabId: number,
+    prompt: string,
+    initialPageState: PageState
+  ): Promise<void> {
+    this.status = "running";
+    this.broadcastState();
+    this.log(
+      "Supervisor 启动",
+      "success",
+      1.0,
+      `🤖 S2 Supervisor 状态机推进模式启动，任务目标: "${prompt}"`
+    );
+
+    const stateTransitions: Array<{
+      step: number;
+      subgoal: string;
+      fromUrl: string;
+      actionType: string;
+      elementDescription: string;
+      toUrl?: string;
+    }> = [];
+
+    let step = 0;
+    const maxSteps = 8;
+    let isTaskCompleted = false;
+    let currentPageState = initialPageState;
+
+    while (step < maxSteps && !isTaskCompleted && !this.shouldStop) {
+      step++;
+      while (this.isPaused && !this.shouldStop) await sleep(500);
+      if (this.shouldStop) break;
+
+      this.log(`步骤 ${step}`, "info", 1.0, `[状态 S_${step - 1}] 当前页面: ${currentPageState.url} (${currentPageState.title})`);
+
+      // 1. Supervisor checks if task is accomplished (only after taking at least 1 action)
+      if (step > 1) {
+        const checkDecision = await this.typesafeService.decideNextAction(
+          prompt,
+          `检查任务是否已全部完成: "${prompt}"`,
+          currentPageState,
+          currentPageState.elements
+        );
+
+        if (checkDecision.isGoalReached || checkDecision.actionType === "finish") {
+          this.log(
+            "目标达成",
+            "success",
+            1.0,
+            `🎉 S2 Supervisor 判定：总目标 "${prompt}" 已圆满完成！`
+          );
+          isTaskCompleted = true;
+          break;
+        }
+      }
+
+      // 2. Supervisor decides next transition action
+      this.log("感知决策", "info", 1.0, `Supervisor 正在分析状态 S_${step - 1} 下的最优动作...`);
+      const decision = await this.typesafeService.decideNextAction(
+        prompt,
+        prompt,
+        currentPageState,
+        currentPageState.elements
+      );
+
+      if (!decision.targetElementId || decision.targetElementId === "none_of_above") {
+        this.log("探索结束", "warn", 1.0, "当前页面未发现进一步相关操作项，状态机探索结束。");
+        break;
+      }
+
+      const targetEl = currentPageState.elements.find((e) => e.id === decision.targetElementId);
+      if (!targetEl || decision.actionType === "finish") {
+        this.log("探索结束", "info", 1.0, "Supervisor 判定无需进一步操作或未发现进一步相关操作项。");
+        break;
+      }
+
+      const desc = `[${targetEl.id}] <${targetEl.tag}> "${targetEl.text || targetEl.placeholder || ""}"`;
+      const fromUrl = currentPageState.url;
+      const cleanClickedText = (targetEl.text || targetEl.placeholder || targetEl.value || "").trim();
+
+      // 3. Actuator (S1) dispatches hardware-level CDP action
+      if (decision.actionType === "type") {
+        this.log(
+          "执行动作",
+          "success",
+          decision.confidence,
+          `S1 聚焦并输入 -> ${desc}`,
+          { id: targetEl.id, description: desc },
+          "type"
+        );
+        await this.cdp!.clickElement(targetEl.rect, this.config.antiBotMode);
+        await sleep(150);
+        await this.cdp!.typeText(prompt, this.config.antiBotMode);
+      } else {
+        this.log(
+          "执行动作",
+          "success",
+          decision.confidence,
+          `S1 贝塞尔轨迹点击 -> ${desc}`,
+          { id: targetEl.id, description: desc },
+          "click"
+        );
+        await this.cdp!.clickElement(targetEl.rect, this.config.antiBotMode);
+      }
+
+      // Wait for browser state transition
+      await sleep(1800);
+
+      // 4. Secondary confirmation modal handling
+      const postActionState = await this.requestPageState(tabId);
+      if (postActionState.activeModal?.isOpen) {
+        this.log("二次确认", "info", 1.0, `检测到确认弹窗 "${postActionState.activeModal.title}"，执行确认...`);
+        const modalDecision = await this.typesafeService.decideNextAction(
+          "在弹窗中点击确定或确认",
+          "确认弹窗",
+          postActionState,
+          postActionState.elements
+        );
+        if (modalDecision.targetElementId && modalDecision.targetElementId !== "none_of_above") {
+          const mEl = postActionState.elements.find((e) => e.id === modalDecision.targetElementId);
+          if (mEl) {
+            await this.cdp!.clickElement(mEl.rect, this.config.antiBotMode);
+            await sleep(1500);
+          }
+        }
+      }
+
+      // 5. Update state for next step
+      currentPageState = await this.requestPageState(tabId);
+      const toUrl = currentPageState.url;
+
+      const actionLabel = cleanClickedText ? `点击【${cleanClickedText}】` : `操作 ${desc}`;
+      stateTransitions.push({
+        step,
+        subgoal: actionLabel,
+        fromUrl,
+        actionType: decision.actionType,
+        elementDescription: desc,
+        clickedText: cleanClickedText || undefined,
+        toUrl: toUrl !== fromUrl ? toUrl : undefined,
+      });
+
+      if (toUrl !== fromUrl) {
+        this.log("状态跃迁", "success", 1.0, `🔗 浏览器状态转移: ${fromUrl} ➔ ${toUrl}`);
+      }
+    }
+
+    // Phase 2: Workflow Synthesis
+    if (stateTransitions.length > 0) {
+      const synthesizedScript = this.synthesizeWorkflowScript(prompt, stateTransitions);
+      const workflowDef: WorkflowDefinition = {
+        id: `workflow_${Date.now()}`,
+        meta: {
+          name: `recipe_${prompt.replace(/\s+/g, "_").slice(0, 20)}`,
+          description: prompt,
+          matchUrl: new URL(stateTransitions[0].fromUrl || "http://localhost").hostname,
+          phases: stateTransitions.map((t) => t.subgoal),
+        },
+        script: synthesizedScript,
+        fn: compileScriptToFunction(synthesizedScript),
+        isBuiltIn: false,
+        createdAt: Date.now(),
+      };
+
+      this.lastExecutedWorkflow = workflowDef;
+      this.activeWorkflowScript = synthesizedScript;
+      this.currentActiveLine = 1;
+      this.status = "completed";
+      this.log(
+        "工作流合成",
+        "success",
+        1.0,
+        `✨ 状态机已将真实执行轨迹合成完整 Dynamic Workflow Recipe！可一键保存供下次直接秒级调用。`
+      );
+      this.broadcastState();
+    } else {
+      this.status = "completed";
+      this.log("探索结束", "info", 1.0, "未检测到可执行的状态转移操作。");
+      this.broadcastState();
+    }
+  }
+
+  private synthesizeWorkflowScript(
+    prompt: string,
+    transitions: Array<{
+      step: number;
+      subgoal: string;
+      fromUrl: string;
+      actionType: string;
+      elementDescription: string;
+      clickedText?: string;
+      toUrl?: string;
+    }>
+  ): string {
+    const lines: string[] = [
+      `const { jev, successCheck, phase, log } = ctx;`,
+      ``,
+      `log("🚀 启动自动化工作流: ${prompt.replace(/"/g, '\\"')}");`,
+      ``,
+    ];
+
+    for (let i = 0; i < transitions.length; i++) {
+      const t = transitions[i];
+      const phaseName = t.clickedText || t.subgoal.replace(/^点击【?|】?$/g, "");
+      lines.push(`phase("${phaseName}");`);
+      lines.push(`log("正在执行: ${t.subgoal.replace(/"/g, '\\"')}...");`);
+      lines.push(`await jev("${t.subgoal.replace(/"/g, '\\"')}");`);
+
+      if (t.toUrl && t.toUrl !== t.fromUrl) {
+        try {
+          const parsedTo = new URL(t.toUrl);
+          lines.push(`await successCheck({ url: "${parsedTo.pathname}" }, { timeout: 3500 });`);
+        } catch {
+          lines.push(`await successCheck({ url: "${t.toUrl}" }, { timeout: 3500 });`);
+        }
+      } else if (t.clickedText) {
+        lines.push(`await successCheck({ disappeared: "${t.clickedText.replace(/"/g, '\\"')}" }, { timeout: 3000 });`);
+      } else {
+        lines.push(`await successCheck("${prompt.replace(/"/g, '\\"')}", { timeout: 2500 });`);
+      }
+      lines.push(``);
+    }
+
+    lines.push(`log("🎉 工作流全部步骤执行完毕，目标已圆满达成！");`);
+    return lines.join("\n");
   }
 
   /**
@@ -453,18 +666,27 @@ export class AgentLoop {
         }
 
         const goalToCheck =
-          (typeof effectiveCriteria === "string" ? effectiveCriteria : effectiveCriteria?.text || effectiveCriteria?.url) ||
+          (typeof effectiveCriteria === "string"
+            ? effectiveCriteria
+            : effectiveCriteria?.text || effectiveCriteria?.url || effectiveCriteria?.disappeared) ||
           this.currentTask ||
           "当前任务达成状态";
 
         const startTime = Date.now();
         let finalPageState: PageState | null = null;
         let matchedFast = false;
+        let fastMatchReason = "";
 
-        const successKeywords = [
-          "已成功", "领取成功", "提交成功", "保存成功", "处理成功", "审批通过",
-          "已领取", "已连续登录", "今日已签到", "今日已领取", "任务已完成", "已完成", "已通过"
-        ];
+        // Check if explicit deterministic criteria was provided
+        const hasExplicitFastCriteria =
+          typeof effectiveCriteria === "object" &&
+          effectiveCriteria !== null &&
+          Boolean(
+            effectiveCriteria.url ||
+              effectiveCriteria.text ||
+              effectiveCriteria.selector ||
+              effectiveCriteria.disappeared
+          );
 
         // Active polling loop: checks condition every pollInterval until timeout
         while (Date.now() - startTime <= timeoutMs) {
@@ -473,34 +695,71 @@ export class AgentLoop {
           finalPageState = await this.requestPageState(tabId);
           const pageText = finalPageState.elements.map((e) => e.text || "").join(" ");
 
-          // 1. Exact URL match (if object provided with url)
+          // 1. URL condition match (e.g. { url: "/mission/daily" })
           if (typeof effectiveCriteria === "object" && effectiveCriteria !== null && effectiveCriteria.url) {
             if (finalPageState.url.includes(effectiveCriteria.url)) {
               matchedFast = true;
+              fastMatchReason = `URL已包含目标路径 "${effectiveCriteria.url}"`;
               break;
             }
           }
 
-          // 2. Exact Text match (if object provided with text)
+          // 2. Disappeared condition (e.g. { disappeared: "领取今日的登录奖励" })
+          if (
+            typeof effectiveCriteria === "object" &&
+            effectiveCriteria !== null &&
+            effectiveCriteria.disappeared
+          ) {
+            const disappearedTarget = effectiveCriteria.disappeared;
+            const exists = finalPageState.elements.some((e) =>
+              Boolean(
+                (e.text && e.text.includes(disappearedTarget)) ||
+                  (e.placeholder && e.placeholder.includes(disappearedTarget)) ||
+                  (e.selector && e.selector.includes(disappearedTarget))
+              )
+            );
+            if (!exists) {
+              matchedFast = true;
+              fastMatchReason = `目标元素/文本 "${disappearedTarget}" 已从页面消除 (操作已生效)`;
+              break;
+            }
+          }
+
+          // 3. Exact Text condition (e.g. { text: "每日登录奖励已顺利领取" })
           if (typeof effectiveCriteria === "object" && effectiveCriteria !== null && effectiveCriteria.text) {
             if (pageText.includes(effectiveCriteria.text)) {
               matchedFast = true;
+              fastMatchReason = `页面已呈现目标文本 "${effectiveCriteria.text}"`;
               break;
             }
           }
 
-          // 3. String criteria match or general success keyword
-          if (typeof effectiveCriteria === "string" && effectiveCriteria.length > 0) {
-            if (finalPageState.url.includes(effectiveCriteria) || pageText.includes(effectiveCriteria)) {
+          // 4. Selector condition (e.g. { selector: ".success-toast" })
+          if (
+            typeof effectiveCriteria === "object" &&
+            effectiveCriteria !== null &&
+            effectiveCriteria.selector
+          ) {
+            const hasSelector = finalPageState.elements.some((e) =>
+              e.selector.includes(effectiveCriteria.selector)
+            );
+            if (hasSelector) {
               matchedFast = true;
+              fastMatchReason = `页面已检测到目标选择器 "${effectiveCriteria.selector}"`;
               break;
             }
           }
 
-          // 4. Common success keywords
-          if (successKeywords.some((kw) => pageText.includes(kw))) {
-            matchedFast = true;
-            break;
+          // 5. String criteria starting with "/" or "http" (treat as URL condition)
+          if (
+            typeof effectiveCriteria === "string" &&
+            (effectiveCriteria.startsWith("/") || effectiveCriteria.startsWith("http"))
+          ) {
+            if (finalPageState.url.includes(effectiveCriteria)) {
+              matchedFast = true;
+              fastMatchReason = `页面URL已跳转至 "${effectiveCriteria}"`;
+              break;
+            }
           }
 
           // If timeout is small or elapsed, exit polling
@@ -517,16 +776,33 @@ export class AgentLoop {
             "状态校验",
             "success",
             1.0,
-            `⚡ [SuccessCheck 极速就绪] "${goalToCheck}" -> ✅ 状态已达成 (耗时仅 ${elapsed}ms，无需盲等)`
+            `⚡ [SuccessCheck 极速就绪] ${fastMatchReason} (耗时仅 ${elapsed}ms，无需盲等)`
           );
           return {
             isGoalReached: true,
             confidence: 1.0,
+            reason: fastMatchReason,
             elapsedMs: elapsed,
           };
         }
 
-        // If fast condition not matched within timeout, evaluate with S1
+        // If explicit structural condition was requested but not met within timeout:
+        if (hasExplicitFastCriteria) {
+          this.log(
+            "状态校验",
+            "warn",
+            0.0,
+            `[SuccessCheck 超时] 未在 ${timeoutMs}ms 内检测到目标状态转移: ${JSON.stringify(effectiveCriteria)}`
+          );
+          return {
+            isGoalReached: false,
+            confidence: 0.0,
+            reason: `Timeout waiting for condition: ${JSON.stringify(effectiveCriteria)}`,
+            elapsedMs: elapsed,
+          };
+        }
+
+        // If no explicit structural condition (or semantic string prompt), evaluate with S1
         const pageState = finalPageState || (await this.requestPageState(tabId));
         try {
           const decision = await this.typesafeService.decideNextAction(

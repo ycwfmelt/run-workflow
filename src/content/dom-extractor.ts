@@ -424,8 +424,11 @@ export function extractInteractiveElements(): PageState {
 
     const rect = el.getBoundingClientRect();
     const tag = el.tagName.toLowerCase();
-    const isInputTag =
-      ["input", "textarea", "select"].includes(tag) || el.isContentEditable;
+    const inputType = (el as HTMLInputElement).type?.toLowerCase() || "";
+    const isTextEntry =
+      (tag === "input" && !["button", "submit", "reset", "checkbox", "radio", "image", "file"].includes(inputType)) ||
+      tag === "textarea" ||
+      el.isContentEditable;
 
     // Apply frame offset to bounding rect for top-level CDP coordinates
     const absoluteRect: ElementRect = {
@@ -455,8 +458,8 @@ export function extractInteractiveElements(): PageState {
         x: Math.round(absoluteRect.left + absoluteRect.width / 2),
         y: Math.round(absoluteRect.top + absoluteRect.height / 2),
       },
-      isClickable: !isInputTag,
-      isInput: isInputTag,
+      isClickable: !isTextEntry,
+      isInput: isTextEntry,
       selector: getSimpleSelector(el),
     });
   }

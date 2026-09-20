@@ -264,16 +264,7 @@ let isFinished = false;
 while (step < maxSteps && !isFinished) {
   step++;
 
-  // 1. 每步前置达成校验 (successCheck)
-  const preCheck = await successCheck(taskGoal);
-  if (preCheck.isGoalReached) {
-    phase("目标达成");
-    log("🎉 实时前置校验通过：目标已确认圆满达成！");
-    isFinished = true;
-    break;
-  }
-
-  // 2. 执行感知决策动作向目标迈进
+  // 执行感知决策动作向目标迈进
   phase("执行步骤 " + step);
   log("正在执行第 " + step + " 步感知决策: " + taskGoal);
   const decision = await jev(taskGoal);
