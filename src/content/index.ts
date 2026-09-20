@@ -21,6 +21,11 @@ chrome.runtime.onMessage.addListener(
         sendResponse({ success: true, state: pageState });
         break;
       }
+      case "DIAGNOSE_PAGE": {
+        const pageState = extractInteractiveElements();
+        sendResponse({ success: true, diagnostics: pageState.diagnostics });
+        break;
+      }
       case "HIGHLIGHT_ELEMENT": {
         highlightTargetElement(message.elementId);
         sendResponse({ success: true });

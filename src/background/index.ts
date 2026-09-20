@@ -73,6 +73,37 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
           logs: agentLoop!.getLogs(),
         };
       }
+      case "DIAGNOSE_PAGE": {
+        const [activeTab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        if (!activeTab || !activeTab.id) {
+          throw new Error("No active tab found");
+        }
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: activeTab.id, allFrames: true },
+            files: ["content.js"],
+          });
+        } catch (e) {}
+
+        return new Promise((resolve, reject) => {
+          chrome.tabs.sendMessage(
+            activeTab.id!,
+            { type: "DIAGNOSE_PAGE" },
+            (res) => {
+              if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+              } else if (res && res.diagnostics) {
+                resolve({ success: true, diagnostics: res.diagnostics });
+              } else {
+                reject(new Error("诊断响应为空"));
+              }
+            }
+          );
+        });
+      }
       default:
         return { success: false, error: "Unknown message type" };
     }

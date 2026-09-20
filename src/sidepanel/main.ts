@@ -14,6 +14,10 @@ const confidenceValue = document.getElementById("confidenceValue") as HTMLElemen
 const confidenceFill = document.getElementById("confidenceFill") as HTMLElement;
 const currentSubgoal = document.getElementById("currentSubgoal") as HTMLElement;
 const logList = document.getElementById("logList") as HTMLElement;
+const diagnoseBtn = document.getElementById("diagnoseBtn") as HTMLButtonElement;
+const copyDebugBtn = document.getElementById("copyDebugBtn") as HTMLButtonElement;
+const diagnoseResult = document.getElementById("diagnoseResult") as HTMLElement;
+let currentDiagnosticsText = "";
 
 const typesafeApiKeyInput = document.getElementById("typesafeApiKey") as HTMLInputElement;
 const systemTwoProviderSelect = document.getElementById("systemTwoProvider") as HTMLSelectElement;
@@ -130,6 +134,53 @@ resumeBtn.addEventListener("click", () => {
 
 stopBtn.addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "STOP_TASK" });
+});
+
+diagnoseBtn.addEventListener("click", () => {
+  diagnoseResult.textContent = "正在深度扫描当前标签页 DOM、Iframes 及 Shadow Roots...";
+  chrome.runtime.sendMessage({ type: "DIAGNOSE_PAGE" }, (response) => {
+    if (chrome.runtime.lastError) {
+      diagnoseResult.textContent = `诊断失败: ${chrome.runtime.lastError.message}`;
+      return;
+    }
+    if (!response || !response.diagnostics) {
+      diagnoseResult.textContent = `诊断失败: ${response?.error || "未返回诊断数据"}`;
+      return;
+    }
+    const d = response.diagnostics;
+    let output = `【页面信息】\nURL: ${d.url}\n标题: ${d.title}\n时间: ${new Date(d.timestamp).toLocaleTimeString()}\n\n`;
+    output += `【Iframe 探测】\n共发现 ${d.iframes.length} 个 iframe:\n`;
+    if (d.iframes.length === 0) {
+      output += `  (未检测到 iframe 标签)\n`;
+    } else {
+      d.iframes.forEach((f: any, idx: number) => {
+        output += `  #${idx + 1} [${f.isSameOrigin ? "同源已穿透" : "跨域限制"}] ${f.src || "(无src)"} [宽${f.rect.width}x高${f.rect.height}]\n`;
+      });
+    }
+    output += `\n【Shadow DOM 探测】\n发现 ${d.shadowRootCount} 个 open Shadow Root\n`;
+    output += `\n【可交互元素】\n共提取到 ${d.interactiveElementsCount} 个可视交互元素\n`;
+    output += `前 15 个元素样本:\n`;
+    if (d.sampleElements.length === 0) {
+      output += `  (未提取到任何可交互按钮或输入框，可能元素在跨域 iframe 或尚未渲染完成)\n`;
+    } else {
+      d.sampleElements.forEach((el: any) => {
+        output += `  • [${el.id}] <${el.tag}> "${el.text}" (selector: ${el.selector})\n`;
+      });
+    }
+
+    currentDiagnosticsText = output;
+    diagnoseResult.textContent = output;
+  });
+});
+
+copyDebugBtn.addEventListener("click", () => {
+  const text = currentDiagnosticsText || diagnoseResult.textContent || "";
+  navigator.clipboard.writeText(text).then(() => {
+    copyDebugBtn.textContent = "已复制 ✓";
+    setTimeout(() => {
+      copyDebugBtn.textContent = "📋 复制日志";
+    }, 1500);
+  });
 });
 
 // Update UI based on status

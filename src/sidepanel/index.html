@@ -260,6 +260,7 @@
       <textarea id="taskPrompt" placeholder="例如：在 Google 搜索 typesafe ai 并点击进入第一条结果..."></textarea>
       <div class="btn-group">
         <button id="startBtn" class="btn-primary">🚀 启动自动化</button>
+        <button id="diagnoseBtn" class="btn-secondary" title="扫描当前网页的 Iframe、Shadow DOM 及所有交互元素">🔍 诊断页面</button>
         <button id="pauseBtn" class="btn-secondary" style="display: none;">⏸ 暂停</button>
         <button id="resumeBtn" class="btn-secondary" style="display: none;">▶ 继续</button>
         <button id="stopBtn" class="btn-danger" style="display: none;">⏹ 停止</button>
@@ -284,6 +285,17 @@
       <div class="card-title">执行轨迹 (Trace)</div>
       <div id="logList" class="log-list">
         <div style="color: var(--text-muted); font-size: 11px; text-align: center; padding: 20px;">暂无日志</div>
+      </div>
+    </div>
+
+    <!-- Debug Inspector Card -->
+    <div class="card" id="debugCard">
+      <div class="card-title">
+        <span>页面诊断与 DOM 探查 (Debug Inspector)</span>
+        <button id="copyDebugBtn" class="btn-secondary" style="padding: 2px 6px; font-size: 10px;">📋 复制日志</button>
+      </div>
+      <div id="diagnoseResult" style="font-size: 11px; color: #94a3b8; max-height: 140px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; background: #0b1120; padding: 8px; border-radius: 4px; border: 1px solid #1e293b;">
+点击上方【🔍 诊断页面】可实时探测当前标签页的 Iframes、Shadow DOM 及提取到的元素列表。
       </div>
     </div>
 

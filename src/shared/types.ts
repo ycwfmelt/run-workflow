@@ -89,6 +89,30 @@ export interface AgentConfig {
   maxSteps: number;
 }
 
+export interface IframeInfo {
+  src: string;
+  isSameOrigin: boolean;
+  rect: ElementRect;
+}
+
+export interface DiagnosticsInfo {
+  url: string;
+  title: string;
+  isTopFrame: boolean;
+  iframes: IframeInfo[];
+  shadowRootCount: number;
+  interactiveElementsCount: number;
+  sampleElements: {
+    id: string;
+    tag: string;
+    text: string;
+    selector: string;
+    inIframe?: boolean;
+    inShadow?: boolean;
+  }[];
+  timestamp: number;
+}
+
 export interface PageState {
   url: string;
   title: string;
@@ -99,12 +123,15 @@ export interface PageState {
     scrollY: number;
   };
   elements: InteractiveElement[];
+  diagnostics?: DiagnosticsInfo;
 }
 
 // Inter-process message protocols
 export type MessagePayload =
   | { type: "EXTRACT_DOM" }
   | { type: "EXTRACT_DOM_RESULT"; state: PageState }
+  | { type: "DIAGNOSE_PAGE" }
+  | { type: "DIAGNOSE_PAGE_RESULT"; diagnostics: DiagnosticsInfo }
   | { type: "HIGHLIGHT_ELEMENT"; elementId: string }
   | { type: "CLEAR_HIGHLIGHTS" }
   | { type: "TOGGLE_OVERLAY"; visible: boolean }
@@ -118,5 +145,8 @@ export type MessagePayload =
       currentTask?: string;
       currentStep?: number;
       recentLogs: StepLog[];
+      currentAction?: AgentAction;
+    };
+
       currentAction?: AgentAction;
     };
