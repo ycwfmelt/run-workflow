@@ -1,91 +1,161 @@
-# Ang - Intelligent Browser Automation Agent
+<div align="center">
 
-A modern Chrome Extension leveraging **TypeSafe AI (Jev System One)**, **Claude Code dynamic workflows (JavaScript recipes)**, and hardware-level **Chrome DevTools Protocol (CDP)** with human-like behavioral emulation (三次贝塞尔曲线鼠标轨迹 + 拟人击键节律).
+# ⚡ run-workflow
 
----
+**Code-driven AI browser automation for Chrome.**  
+*Compiles natural language into native JavaScript workflows with sub-100ms visual actions, real-time code stepper & Codex-style virtual mouse.*
 
-## 🌟 核心特性 (Key Features)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Chrome Extension](https://img.shields.io/badge/Chrome%20Extension-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/mv3/intro/)
+[![Vercel AI SDK](https://img.shields.io/badge/Vercel%20AI%20SDK-v4-black?logo=vercel&logoColor=white)](https://sdk.vercel.ai/)
+[![Ollama & DeepSeek](https://img.shields.io/badge/LLM-DeepSeek--V4.1-10b981)](https://ollama.ai)
 
-1. **Jev System One 极速决策 (~100ms)**
-   - 告别传统 browser-use 步步调用庞大视觉模型（每次等 3~6 秒）的卡顿。
-   - 使用 Jev 的 `Choice` 原语精确定位可视交互元素。
-   - 使用 `Noul` 原语毫秒级断言任务达成状态及 CAPTCHA / 阻断检测。
-2. **Claude Code 兼容动态工作流 (JavaScript Function Recipes)**
-   - 工作流本质即为原生 JavaScript 脚本函数，变量天生保存在 JS 运行时内存中。
-   - 原生支持 `while (!isDone)` 等循环与分支控制，一次执行即一次 JS 异步函数调用。
-3. **硬件级操作真实性 (`event.isTrusted = true`)**
-   - 基于 `chrome.debugger` (CDP) 派发真实输入事件，彻底解决普通插件合成事件被反爬风控（Cloudflare / 极验等）秒封的问题。
-4. **拟人人机轨迹引擎 (Anti-Bot Emulation)**
-   - **三次贝塞尔曲线 (Cubic Bezier)** 鼠标轨迹仿真，带 Fitts 加速/减速与微小手部抖动。
-   - 高斯正态分布击键延迟（60ms ~ 160ms 随机微停顿），全量固定锁定开启。
-5. **双层混合架构**
-   - **System Two 规划层 (Compiler)**：预置 Ollama + `deepseek-v4.1-flash:cloud`，自动平滑降级至内置规则。
-   - **System One 执行层 (Runtime)**：由 Jev 驱动高频页面内微操作。
-6. **侧边栏纯净执行交互**
-   - 侧边栏专注执行与轨迹监测；API Key 与全局参数移至独立配置页，保障安全与整洁。
+</div>
 
 ---
 
-## 📁 目录结构
+## 🌟 Why `run-workflow`?
 
+Most AI browser agents (e.g. traditional multi-modal agents) suffer from three critical bottlenecks:
+1. **Slow execution latency**: Every single click requires re-encoding a screenshot and waiting 3-6 seconds for a giant vision model.
+2. **Brittle orchestration**: Workflows are forced into rigid JSON schemas or prompt loops with zero real control flow.
+3. **Heavy environment requirements**: They demand Python backends, Docker containers, or VNC virtual desktops.
+
+**`run-workflow` takes a radically different approach:**
+- **Zero-Docker, Pure Chrome Extension**: Runs directly inside your browser via Chrome Manifest V3 and Chrome DevTools Protocol (CDP).
+- **Dual-System Cognition (S1 + S2)**: System 2 writes a clean, native JavaScript dynamic workflow function; System 1 (TypeSafe AI Jev) executes sub-100ms visual micro-actions.
+- **Visual Voice-and-Motion Sync**: Watch the **Live Code Stepper** highlight the active JavaScript line in real time, while the **Codex Virtual Mouse** glides along Bezier curves on the page with click ripples.
+
+---
+
+## 🚀 Key Features
+
+```mermaid
+flowchart LR
+    User([User Prompt]) --> S2[System 2: Workflow Compiler]
+    S2 -->|Vercel AI SDK + DeepSeek| JS[Native JavaScript Workflow Function]
+    
+    subgraph Execution Loop ["JS Runtime Execution"]
+        JS -->|await getPage| DOM[Real-time DOM State]
+        JS -->|await jev| S1[System 1: TypeSafe Jev ~100ms]
+        S1 -->|Hardware CDP Input| Page[(Target Webpage)]
+    end
+
+    subgraph Realtime Feedback ["Visual Telemetry"]
+        JS -.->|V8 Call-stack Trace| Stepper[Live Code Stepper]
+        S1 -.->|Bezier Interpolation| Cursor[Codex Virtual Mouse]
+    end
 ```
-automation-plugins/
-├── manifest.json            # Chrome Manifest V3 配置文件
-├── vite.config.ts           # 极速多入口打包配置
-├── public/icons/            # 极简矢量与栅格图标 (icon.svg, icon16/48/128.png)
+
+### 1. 📜 Executable JS Dynamic Workflows (Claude Code & Pi Compatible)
+Workflows are compiled into pure JavaScript async functions (`async function run(ctx)`):
+- Variables are preserved natively in JS runtime memory.
+- Real-time condition checking (`while (true) { const page = await getPage(); if (!hasPending) break; }`) eliminates rigid static counters.
+- Built-in primitives:
+  - `await ctx.jev(subgoal)`: Sub-100ms visual target selection & hardware click.
+  - `await ctx.getPage()`: Real-time viewport DOM, modal status & elements.
+  - `ctx.phase(title)`: Live UI timeline declaration.
+  - `await ctx.wait(ms)`: DOM settling wait.
+  - `await ctx.scroll(deltaY)`: Smooth wheel scrolling.
+  - `ctx.log(message)`: Structured trace logging.
+
+### 2. 💻 Live Workflow Code Stepper (Real-time Line Highlighting)
+- Uses zero-overhead **V8 Call-stack Caller Tracing** (`new Error().stack` + SourceURL) to track execution with sub-millisecond precision.
+- The Sidepanel displays the workflow code in a dark terminal viewer with line numbers.
+- As each line executes, that line glows with a soft purple highlight and automatically smooth-scrolls into the center of the viewport!
+
+### 3. 🖱️ Codex-Style Virtual Mouse Cursor
+- Injected via **Shadow DOM** exclusively in the top frame, completely immune to host page CSS conflicts.
+- High-precision SVG pointer with glowing "Ang" indicator.
+- Synchronized with background CDP hardware movement, rendering authentic **Cubic Bezier trajectories** and dynamic **circular click ripples**.
+- Strictly non-intrusive (`pointer-events: none !important`).
+
+### 4. 🛡️ Hardware-Level Anti-Bot Human Emulation
+- Direct Chrome DevTools Protocol (`Input.dispatchMouseEvent`, `Input.dispatchKeyEvent`) ensures `event.isTrusted === true`.
+- Three-dimensional Bezier curves with Fitts's law acceleration and physiological micro-jitter.
+- Gaussian Poisson-distributed keystroke delays.
+
+### 5. 🎯 Configurable URL Matching & Recipe Manager
+- Full-featured Workflow Manager in the Options page.
+- 4 flexible URL matching syntaxes:
+  - **Global (`*` or empty)**: Matches every page.
+  - **Domain / Path Substring**: e.g. `admin.example.com` or `github.com/pulls`.
+  - **Wildcard Glob**: e.g. `*.example.com/*` or `https://*`.
+  - **Regular Expressions**: e.g. `/^https:\/\/.*\.example\.com/i`.
+- Real-time URL matching rule simulator & code editor with syntax verification.
+
+---
+
+## 🛠️ Quick Start
+
+### 1. Clone & Install Dependencies
+```bash
+git clone https://github.com/ycwfmelt/run-workflow.git
+cd run-workflow
+pnpm install
+```
+
+### 2. Build the Extension
+```bash
+pnpm run build
+```
+The output will be generated in the `dist/` directory.
+
+### 3. Load into Google Chrome
+1. Open Chrome and navigate to `chrome://extensions/`.
+2. Enable **Developer mode** in the top right corner.
+3. Click **Load unpacked** and select the `dist/` directory inside this repository.
+4. Pin the **Ang** extension icon to your toolbar.
+
+### 4. Configure Credentials
+1. Click the extension icon to open the Sidepanel, then click the **⚙️ (Settings)** icon.
+2. Enter your **TypeSafe API Key** (for System One ~100ms micro-actions).
+3. System Two is pre-configured to connect to local **Ollama** (`http://localhost:11434/v1`) using `deepseek-v4.1-flash:cloud`.
+   *(If Ollama is not running, the system automatically degrades to the universal intelligent workflow engine without crashing.)*
+
+---
+
+## 📁 Repository Structure
+
+```text
+run-workflow/
+├── manifest.json            # Chrome Extension Manifest V3 configuration
+├── vite.config.ts           # Multi-entry bundling config
+├── public/icons/            # Vector & raster icons (icon.svg, PNGs)
 ├── src/
 │   ├── background/
-│   │   ├── index.ts         # Service Worker 入口，负责扩展生命周期与侧边栏通讯
-│   │   ├── agent-loop.ts    # 任务主控协调器 (AgentLoop)
-│   │   ├── cdp-client.ts    # CDP 硬件输入客户端 (Input.dispatchMouseEvent 等)
-│   │   ├── bezier-mouse.ts  # 人机鼠标轨迹与物理防风控引擎
-│   │   ├── planner.ts       # System Two 任务分解器与意图解析器
-│   │   └── typesafe-service.ts # TypeSafe Jev API (Choice / Noul 评估服务)
-│   ├── workflows/           # Claude Code 兼容动态工作流引擎
-│   │   ├── types.ts         # 工作流上下文 (WorkflowContext) 与原语定义
-│   │   ├── workflow-registry.ts # 工作流发现与持久化存储注册表
-│   │   └── builtin/         # 内置自动化脚本 (如 NEW-BOSS 批量审批)
+│   │   ├── index.ts         # Service Worker & messaging dispatcher
+│   │   ├── agent-loop.ts    # Central task execution coordinator & V8 line tracer
+│   │   ├── cdp-client.ts    # Hardware input layer (CDP mouse/keyboard dispatch)
+│   │   ├── bezier-mouse.ts  # Human trajectory & physical anti-bot model
+│   │   └── typesafe-service.ts # TypeSafe Jev API client
+│   ├── workflows/           # Dynamic Workflow Engine
+│   │   ├── types.ts         # WorkflowContext primitives & definitions
+│   │   ├── compiler.ts      # Vercel AI SDK + DeepSeek workflow compiler
+│   │   └── workflow-registry.ts # Storage registry & 4-mode URL match engine
 │   ├── content/
-│   │   ├── index.ts         # Content Script 监听器
-│   │   └── dom-extractor.ts # 可视可交互 DOM 节点高效提取与去重
+│   │   ├── index.ts         # Content script message receiver
+│   │   ├── virtual-cursor.ts # Shadow-DOM Codex virtual mouse & click ripple
+│   │   └── dom-extractor.ts # High-efficiency DOM extraction & deduplication
 │   ├── sidepanel/
-│   │   ├── index.html       # 纯净执行侧边栏界面 (任务目标、动态工作流卡片、Trace)
-│   │   └── main.ts          # 侧边栏前端控制器
-│   ├── options/
-│   │   ├── index.html       # 专属独立全局配置中心 (TypeSafe Key / Ollama 测试)
-│   │   └── options.ts
-│   └── shared/
-│       ├── types.ts         # 全局强类型定义 (DOM 节点、Action、消息流)
-│       └── storage.ts       # chrome.storage 本地配置封装
-└── dist/                    # 打包产物 (直接载入 Chrome)
+│   │   ├── index.html       # Sidepanel UI (Live Code Stepper, Telemetry, Trace)
+│   │   └── main.ts          # Sidepanel reactive controller
+│   └── options/
+│       ├── index.html       # Workflow Manager & Global settings UI
+│       └── options.ts       # Recipe editor, CRUD & URL match simulator
+└── dist/                    # Production build artifacts (ready to load in Chrome)
 ```
 
 ---
 
-## 🚀 快速使用指南 (Quick Start)
+## 🤝 Contributing
 
-### 1. 编译构建
-```bash
-# 安装依赖
-pnpm install
+Contributions, issues, and feature requests are welcome!
+Feel free to check the [issues page](https://github.com/ycwfmelt/run-workflow/issues).
 
-# 编译输出到 dist 目录
-pnpm run build
+---
 
-# 或者开发模式监听代码变更
-pnpm run dev
-```
+## 📄 License
 
-### 2. 在 Chrome 中加载扩展
-1. 打开 Chrome 浏览器，访问 `chrome://extensions/`。
-2. 打开右上角的 **“开发者模式” (Developer mode)** 开关。
-3. 点击左上角的 **“加载已解压的扩展程序” (Load unpacked)**。
-4. 选择当前项目的 `dist` 目录：`/Users/leyan/Project/automation-plugins/dist`。
-
-### 3. 开始自动化
-1. 在浏览器右上角扩展栏中点击 **JevPilot** 图标，打开右侧的 **Side Panel**。
-2. 在侧边栏底部的“API 配置”中输入你的 **TypeSafe API Key** 并点击“保存配置”。
-3. 在上方输入任意任务，例如：
-   - `在 Google 搜索 typesafe ai 并点击进入第一条结果`
-   - `在 GitHub 搜索 browser-use`
-4. 点击 **🚀 启动自动化**，观察页面上的数字打标、鼠标移动以及仪表盘上的置信度变化！
+This project is licensed under the [MIT License](LICENSE).

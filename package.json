@@ -1,17 +1,28 @@
 {
-  "name": "ang",
+  "name": "run-workflow",
   "version": "1.0.0",
   "type": "module",
-  "description": "Ang - Intelligent AI browser automation with TypeSafe System One and dynamic workflows",
+  "description": "Code-driven AI browser automation for Chrome. Compiles natural language into native JavaScript workflows with sub-100ms visual actions & live visual feedback.",
   "main": "index.js",
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "browser-automation",
+    "chrome-extension",
+    "ai-agent",
+    "deepseek",
+    "computer-use",
+    "vercel-ai-sdk",
+    "workflow-automation",
+    "operator",
+    "anti-detect",
+    "typescript"
+  ],
+  "author": "ycwfmelt",
+  "license": "MIT",
   "packageManager": "pnpm@10.33.2",
   "dependencies": {
     "@ai-sdk/openai": "^4.0.71",
