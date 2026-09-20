@@ -18,7 +18,8 @@ const BUILTIN_WORKFLOWS: WorkflowDefinition[] = [
   },
 ];
 
-const STORAGE_KEY = "jevpilot_custom_workflows";
+const STORAGE_KEY = "ang_custom_workflows";
+const LEGACY_STORAGE_KEY = "jevpilot_custom_workflows";
 
 export class WorkflowRegistry {
   /**
@@ -26,8 +27,8 @@ export class WorkflowRegistry {
    */
   static async getAllWorkflows(): Promise<WorkflowDefinition[]> {
     try {
-      const stored = await chrome.storage.local.get(STORAGE_KEY);
-      const custom: WorkflowDefinition[] = stored[STORAGE_KEY] || [];
+      const stored = await chrome.storage.local.get([STORAGE_KEY, LEGACY_STORAGE_KEY]);
+      const custom: WorkflowDefinition[] = stored[STORAGE_KEY] || stored[LEGACY_STORAGE_KEY] || [];
       return [...BUILTIN_WORKFLOWS, ...custom];
     } catch {
       return [...BUILTIN_WORKFLOWS];

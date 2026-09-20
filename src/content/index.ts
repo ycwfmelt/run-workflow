@@ -1,23 +1,35 @@
-import { extractInteractiveElements } from "./dom-extractor.js";
-import {
-  renderElementBadges,
-  highlightTargetElement,
-  clearOverlays,
-  setOverlayVisibility,
-} from "./overlay.js";
+import { extractInteractiveElements, elementNodeMap } from "./dom-extractor.js";
 import { MessagePayload } from "../shared/types.js";
+
+function highlightElement(elementId: string) {
+  clearHighlights();
+  const node = elementNodeMap.get(elementId);
+  if (node) {
+    node.scrollIntoView({ behavior: "smooth", block: "center" });
+    node.style.outline = "3px solid #10b981";
+    node.style.boxShadow = "0 0 10px rgba(16, 185, 129, 0.6)";
+    node.classList.add("ang-highlight");
+  }
+}
+
+function clearHighlights() {
+  document.querySelectorAll(".ang-highlight").forEach((el) => {
+    (el as HTMLElement).style.outline = "";
+    (el as HTMLElement).style.boxShadow = "";
+    el.classList.remove("ang-highlight");
+  });
+}
 
 // Listen to messages from background service worker
 chrome.runtime.onMessage.addListener(
   (
     message: MessagePayload,
-    sender: chrome.runtime.MessageSender,
+    _sender: chrome.runtime.MessageSender,
     sendResponse: (response?: any) => void
   ) => {
     switch (message.type) {
       case "EXTRACT_DOM": {
         const pageState = extractInteractiveElements();
-        renderElementBadges(pageState.elements);
         sendResponse({ success: true, state: pageState });
         break;
       }
@@ -27,25 +39,20 @@ chrome.runtime.onMessage.addListener(
         break;
       }
       case "HIGHLIGHT_ELEMENT": {
-        highlightTargetElement(message.elementId);
+        highlightElement(message.elementId);
         sendResponse({ success: true });
         break;
       }
       case "CLEAR_HIGHLIGHTS": {
-        clearOverlays();
-        sendResponse({ success: true });
-        break;
-      }
-      case "TOGGLE_OVERLAY": {
-        setOverlayVisibility(message.visible);
+        clearHighlights();
         sendResponse({ success: true });
         break;
       }
       default:
         break;
     }
-    return true; // Keep message channel open for async response if needed
+    return true;
   }
 );
 
-console.log("[JevPilot] Content script loaded and listening.");
+console.log("[Ang] Content script loaded and listening.");

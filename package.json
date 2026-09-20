@@ -1,8 +1,8 @@
 {
-  "name": "automation-plugins",
+  "name": "ang",
   "version": "1.0.0",
   "type": "module",
-  "description": "",
+  "description": "Ang - Intelligent AI browser automation with TypeSafe System One and dynamic workflows",
   "main": "index.js",
   "scripts": {
     "build": "vite build",

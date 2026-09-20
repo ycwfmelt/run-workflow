@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="ang-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="ang-accent" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="55%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <filter id="subtle-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background Squircle -->
+  <rect x="2" y="2" width="124" height="124" rx="28" fill="url(#ang-bg)" stroke="#334155" stroke-width="2" stroke-opacity="0.8"/>
+
+  <!-- Minimalist 'A' Geometry -->
+  <g filter="url(#subtle-glow)">
+    <!-- Upward Angle Chevron -->
+    <path d="M34 94 L64 28 L94 94" 
+          fill="none" 
+          stroke="url(#ang-accent)" 
+          stroke-width="11" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+
+    <!-- Precision Horizontal Horizon -->
+    <line x1="47" y1="68" x2="81" y2="68" 
+          stroke="url(#ang-accent)" 
+          stroke-width="8" 
+          stroke-linecap="round"/>
+
+    <!-- Zenith Focus Point -->
+    <circle cx="64" cy="46" r="3.5" fill="#38bdf8"/>
+  </g>
+</svg>

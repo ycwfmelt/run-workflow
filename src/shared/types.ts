@@ -155,6 +155,3 @@ export type MessagePayload =
       recentLogs: StepLog[];
       currentAction?: AgentAction;
     };
-
-      currentAction?: AgentAction;
-    };

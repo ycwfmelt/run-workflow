@@ -18,45 +18,9 @@ export function isBatchTask(prompt: string): boolean {
   return /(?:全部|所有|批量|逐个|每一个|每个|列表里全部|all|batch|every|each)/i.test(prompt);
 }
 
-export const PROVIDER_PRESETS: Record<
-  string,
-  { name: string; endpoint: string; defaultModel: string }
-> = {
-  none: {
-    name: "无 (仅使用内置规则，零依赖冷启动)",
-    endpoint: "",
-    defaultModel: "",
-  },
-  deepseek: {
-    name: "DeepSeek (deepseek-chat)",
-    endpoint: "https://api.deepseek.com",
-    defaultModel: "deepseek-chat",
-  },
-  openai: {
-    name: "OpenAI (gpt-4o-mini)",
-    endpoint: "https://api.openai.com/v1",
-    defaultModel: "gpt-4o-mini",
-  },
-  gemini: {
-    name: "Google Gemini (gemini-2.5-flash via OpenAI API)",
-    endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/",
-    defaultModel: "gemini-2.5-flash",
-  },
-  siliconflow: {
-    name: "硅基流动 SiliconFlow (DeepSeek-V3)",
-    endpoint: "https://api.siliconflow.cn/v1",
-    defaultModel: "deepseek-ai/DeepSeek-V3",
-  },
-  ollama: {
-    name: "Ollama 本地模型 (deepseek-v4.1-flash:cloud)",
-    endpoint: "http://localhost:11434/v1",
-    defaultModel: "deepseek-v4.1-flash:cloud",
-  },
-  custom: {
-    name: "自定义 OpenAI 兼容 API",
-    endpoint: "https://api.openai.com/v1",
-    defaultModel: "gpt-4o-mini",
-  },
+export const DEFAULT_S2_CONFIG = {
+  endpoint: "http://localhost:11434/v1",
+  model: "deepseek-v4.1-flash:cloud",
 };
 
 export class TaskPlanner {
@@ -91,7 +55,7 @@ export class TaskPlanner {
         }
       } catch (err: any) {
         warning = `S2 规划模型 (${this.config.systemTwoProvider}: ${this.config.systemTwoModel || "default"}) 调用失败: ${err.message}。已自动启用内置智能意图解析器。`;
-        console.warn("[JevPilot]", warning);
+        console.warn("[Ang]", warning);
       }
     }
 
@@ -270,10 +234,9 @@ export class TaskPlanner {
    * Generative S2 LLM planner using OpenAI-compatible Chat Completion endpoint
    */
   private async callLLMPlanner(prompt: string): Promise<TaskPlan> {
-    const preset = PROVIDER_PRESETS[this.config.systemTwoProvider] || PROVIDER_PRESETS.custom;
-    const endpoint = this.config.systemTwoEndpoint || preset.endpoint || "https://api.openai.com/v1";
-    const model = this.config.systemTwoModel || preset.defaultModel || "gpt-4o-mini";
-    const url = `${endpoint.replace(/\/+$/, "")}/chat/completions`;
+    const endpoint = (this.config.systemTwoEndpoint || DEFAULT_S2_CONFIG.endpoint).replace(/\/+$/, "");
+    const model = this.config.systemTwoModel || DEFAULT_S2_CONFIG.model;
+    const url = `${endpoint}/chat/completions`;
 
     const systemPrompt = `You are an expert web automation planner. 
 Break down the user's web task into 1 to 5 concrete sequential UI subgoals.

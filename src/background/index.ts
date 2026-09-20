@@ -19,7 +19,7 @@ async function init() {
     }
   });
 
-  console.log("[JevPilot] Background Service Worker initialized.");
+  console.log("[Ang] Background Service Worker initialized.");
 }
 
 init();

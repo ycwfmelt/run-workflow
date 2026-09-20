@@ -75,7 +75,7 @@ export class AgentLoop {
     targetElement?: { id: string; description: string },
     actionType?: any
   ) {
-    console.log(`[JevPilot] [${status.toUpperCase()}] ${subgoal} -> ${message}`);
+    console.log(`[Ang] [${status.toUpperCase()}] ${subgoal} -> ${message}`);
     const entry: StepLog = {
       stepNumber: this.logs.length + 1,
       timestamp: Date.now(),
@@ -126,7 +126,7 @@ export class AgentLoop {
       });
       await sleep(200);
     } catch (err: any) {
-      console.warn("[JevPilot] Auto-injection warning:", err);
+      console.warn("[Ang] Auto-injection warning:", err);
     }
   }
 
@@ -250,9 +250,19 @@ export class AgentLoop {
       this.status = "running";
       this.broadcastState();
 
-      // 3. Execute Workflow: Dynamic Batch State Machine vs Sequential Plan
-      if (plan.isBatch) {
-        await this.runDynamicBatchWorkflow(tabId, plan);
+      // 3. Execute Workflow: Check for registered matching dynamic workflow or sequential plan
+      const pageState = await this.requestPageState(tabId);
+      const pageWorkflows = await WorkflowRegistry.getMatchingWorkflows(pageState.url);
+
+      if (plan.isBatch && pageWorkflows.length > 0 && pageWorkflows[0].fn) {
+        const wf = pageWorkflows[0];
+        this.log(
+          "动态工作流匹配",
+          "success",
+          1.0,
+          `已匹配到专属动态工作流 [${wf.meta.name}]: "${wf.meta.description}"，启动执行...`
+        );
+        await this.executeWorkflowFunction(tabId, wf.fn);
       } else {
         await this.runSequentialWorkflow(tabId, plan);
       }
@@ -268,196 +278,6 @@ export class AgentLoop {
         chrome.tabs.sendMessage(this.tabId, { type: "CLEAR_HIGHLIGHTS" }).catch(() => {});
       }
       this.broadcastState();
-    }
-  }
-
-  /**
-   * Dynamic State Machine for Batch Enterprise Workflows (like Claude Code / ReAct)
-   */
-  private async runDynamicBatchWorkflow(
-    tabId: number,
-    plan: TaskPlan
-  ): Promise<void> {
-    let processedCount = 0;
-    const maxBatchItems = 50;
-    let consecutiveIdleTurns = 0;
-
-    this.log(
-      "动态批处理工作流",
-      "success",
-      1.0,
-      `已启动动态批量状态机 (目标: ${plan.goal})。正在持续检索待处理列表...`
-    );
-
-    while (processedCount < maxBatchItems && !this.shouldStop) {
-      this.currentStepIndex = processedCount;
-      this.broadcastState();
-
-      // Pause check
-      while (this.isPaused && !this.shouldStop) {
-        await sleep(500);
-      }
-      if (this.shouldStop) break;
-
-      // Extract current DOM state
-      let pageState: PageState;
-      try {
-        pageState = await this.requestPageState(tabId);
-      } catch (e: any) {
-        this.log("DOM 状态检测", "warning", 0, `获取页面失败 (${e.message})，重试中...`);
-        await sleep(1500);
-        continue;
-      }
-
-      const currentUrl = pageState.url || "";
-
-      // ----------------------------------------------------
-      // STATE A: Active Modal Dialog (二次确认弹窗)
-      // ----------------------------------------------------
-      if (pageState.activeModal?.isOpen) {
-        this.log(
-          `批处理 [第 ${processedCount + 1} 笔]`,
-          "warning",
-          0.95,
-          `检测到前台确认弹窗 ("${pageState.activeModal.title}")，正在点击【确认】...`
-        );
-        const decision = await this.typesafeService.decideNextAction(
-          plan.goal,
-          "点击弹窗中的【确认】或【确定】按钮完成最终生效",
-          pageState,
-          pageState.elements
-        );
-        if (decision.targetElementId && decision.targetElementId !== "none_of_above") {
-          const el = pageState.elements.find((e) => e.id === decision.targetElementId);
-          if (el) {
-            await this.cdp!.clickElement(el.rect, this.config.antiBotMode);
-            await sleep(1500);
-            consecutiveIdleTurns = 0;
-            continue;
-          }
-        }
-      }
-
-      // ----------------------------------------------------
-      // STATE B: Detail / Approval Form View (详情审批页)
-      // ----------------------------------------------------
-      const isDetailPage =
-        /DETAIL|APPLY|DETAIL\/\d+/i.test(currentUrl) ||
-        pageState.elements.some((e) => ["打回", "通过", "同意"].includes(e.text));
-
-      if (isDetailPage) {
-        // Check if there is an actionable [通过] or [同意] button
-        const approveBtn = pageState.elements.find((e) =>
-          ["通过", "同意", "审批通过"].includes(e.text)
-        );
-
-        if (approveBtn && approveBtn.isClickable) {
-          this.log(
-            `批处理 [第 ${processedCount + 1} 笔]`,
-            "success",
-            1.0,
-            `处于详情页: 贝塞尔轨迹点击【${approveBtn.text}】执行审批...`
-          );
-          await this.cdp!.clickElement(approveBtn.rect, this.config.antiBotMode);
-          await sleep(1500);
-          consecutiveIdleTurns = 0;
-          continue;
-        }
-
-        // Check if there is a [返回] button to return to list
-        const returnBtn = pageState.elements.find(
-          (e) => e.text === "返回" || e.ariaLabel === "返回"
-        );
-
-        if (returnBtn) {
-          processedCount++;
-          this.log(
-            `批处理 [第 ${processedCount} 笔完成]`,
-            "success",
-            1.0,
-            `本笔审批已提交！点击【返回】回到工作列表，准备下一笔 (已完成 ${processedCount} 笔)...`
-          );
-          await this.cdp!.clickElement(returnBtn.rect, this.config.antiBotMode);
-          await sleep(2000);
-          consecutiveIdleTurns = 0;
-          continue;
-        }
-      }
-
-      // ----------------------------------------------------
-      // STATE C: List View (工作事项列表页)
-      // ----------------------------------------------------
-      // In list view: look for [处理] or [办理] buttons
-      const processButtons = pageState.elements.filter(
-        (e) =>
-          e.text.startsWith("处理") ||
-          e.text === "处理" ||
-          e.text.startsWith("办理") ||
-          e.text === "办理"
-      );
-
-      if (processButtons.length > 0) {
-        const nextTarget = processButtons[0];
-        this.log(
-          `批处理 [第 ${processedCount + 1} 笔]`,
-          "success",
-          1.0,
-          `列表中发现待审批项: 贝塞尔点击【${nextTarget.text}】进入详情...`
-        );
-        await this.cdp!.clickElement(nextTarget.rect, this.config.antiBotMode);
-        consecutiveIdleTurns = 0;
-        await sleep(2000);
-        continue;
-      }
-
-      // If no [处理] buttons visible on current viewport, try scrolling down in case table is long
-      if (consecutiveIdleTurns === 0) {
-        consecutiveIdleTurns++;
-        this.log(
-          "列表扫描",
-          "warning",
-          0.6,
-          "当前视口未见待处理按钮，尝试向下滚动扫描列表..."
-        );
-        await this.cdp!.scroll(350);
-        await sleep(1200);
-        continue;
-      }
-
-      // Check for Pagination [下一页] button
-      const nextPageBtn = pageState.elements.find(
-        (e) =>
-          (e.text.includes("下一页") || e.ariaLabel?.includes("Next Page")) &&
-          !e.selector.includes("disabled")
-      );
-
-      if (nextPageBtn && nextPageBtn.isClickable) {
-        this.log("翻页继续", "success", 0.9, "当前页待审批项已处理完毕，点击【下一页】翻页...");
-        await this.cdp!.clickElement(nextPageBtn.rect, this.config.antiBotMode);
-        consecutiveIdleTurns = 0;
-        await sleep(2000);
-        continue;
-      }
-
-      // No more items and no next page!
-      consecutiveIdleTurns++;
-      if (consecutiveIdleTurns < 3) {
-        await sleep(1200);
-        continue;
-      }
-
-      // Complete!
-      break;
-    }
-
-    if (!this.shouldStop) {
-      this.status = "completed";
-      this.log(
-        "批量任务圆满完成",
-        "success",
-        1.0,
-        `🎉 列表中已无更多待审批事项！本次批量自动化共成功审批处理了 ${processedCount} 笔业务。`
-      );
     }
   }
 
@@ -739,7 +559,7 @@ export class AgentLoop {
           }
         }
       } catch (guardErr: any) {
-        console.warn("[JevPilot] Modal confirmation safety guard error:", guardErr);
+        console.warn("[Ang] Modal confirmation safety guard error:", guardErr);
       }
 
       this.status = "completed";
