@@ -99,22 +99,52 @@ function cleanText(text: string): string {
 }
 
 function extractElementText(el: HTMLElement): string {
+  let mainText = "";
   const ariaLabel = el.getAttribute("aria-label");
-  if (ariaLabel && ariaLabel.trim()) return cleanText(ariaLabel);
-
-  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-    if (el.placeholder) return cleanText(el.placeholder);
-    if (el.value) return cleanText(el.value);
+  if (ariaLabel && ariaLabel.trim()) {
+    mainText = cleanText(ariaLabel);
+  } else if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    mainText = cleanText(el.value || el.placeholder || "");
+  } else {
+    const title = el.getAttribute("title");
+    if (title && title.trim()) {
+      mainText = cleanText(title);
+    } else {
+      const img = el.querySelector("img");
+      if (img && img.alt) {
+        mainText = cleanText(img.alt);
+      } else {
+        mainText = cleanText(el.innerText || el.textContent || "");
+      }
+    }
   }
 
-  const title = el.getAttribute("title");
-  if (title && title.trim()) return cleanText(title);
+  // Contextualize table rows: e.g. "处理 (行数据: YS3839000006 | 翰思 | 综合平台RPA)"
+  const tr = el.closest("tr");
+  if (tr) {
+    const cells = Array.from(tr.querySelectorAll("td, th"))
+      .filter((td) => !td.contains(el))
+      .map((td) => cleanText(td.textContent || ""))
+      .filter((t) => t && t.length > 0 && t.length < 35);
+    if (cells.length > 0) {
+      const rowInfo = cells.slice(0, 3).join(" | ");
+      return mainText ? `${mainText} (行数据: ${rowInfo})` : `(行数据: ${rowInfo})`;
+    }
+  }
 
-  const img = el.querySelector("img");
-  if (img && img.alt) return cleanText(img.alt);
+  // Contextualize form items: e.g. "[合同编号] 支持模糊匹配"
+  const formItem = el.closest(".ant-form-item, .el-form-item, .form-group, .form-item");
+  if (formItem) {
+    const labelEl = formItem.querySelector("label, .ant-form-item-label, .el-form-item__label");
+    if (labelEl && !labelEl.contains(el)) {
+      const labelText = cleanText(labelEl.textContent || "");
+      if (labelText) {
+        return mainText ? `[${labelText}] ${mainText}` : `[${labelText}]`;
+      }
+    }
+  }
 
-  const text = el.innerText || el.textContent || "";
-  return cleanText(text);
+  return mainText;
 }
 
 function getSimpleSelector(el: HTMLElement): string {

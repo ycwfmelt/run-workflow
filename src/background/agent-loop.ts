@@ -197,6 +197,14 @@ export class AgentLoop {
 
       // 1. System Two: Plan and extract entities
       const plan: TaskPlan = await this.planner.createPlan(prompt);
+      if (plan.warning) {
+        this.log(
+          "S2 规划警告",
+          "warning",
+          0.5,
+          plan.warning
+        );
+      }
       this.log(
         "Task Decomposition",
         "success",
@@ -346,8 +354,8 @@ export class AgentLoop {
           const elemDesc = `[${targetElement.id}] <${targetElement.tag}> "${targetElement.text || targetElement.placeholder || targetElement.ariaLabel || ""}"`;
 
           // Execute action via CDP
-          if (decision.actionType === "type" || targetElement.isInput) {
-            const textToType = currentStep.typeText || prompt;
+          if (decision.actionType === "type" || (targetElement.isInput && currentStep.typeText)) {
+            const textToType = currentStep.typeText || "";
             this.log(
               currentStep.subgoal,
               "success",
@@ -358,21 +366,22 @@ export class AgentLoop {
             );
 
             await this.cdp.clickElement(targetElement.rect, this.config.antiBotMode);
-            await sleep(150);
-            await this.cdp.typeText(textToType, this.config.antiBotMode);
-            await sleep(200);
+            if (textToType) {
+              await sleep(150);
+              await this.cdp.typeText(textToType, this.config.antiBotMode);
+              await sleep(200);
 
-            // Press Enter if it's a search input
-            if (targetElement.role === "searchbox" || targetElement.tag === "input") {
-              await this.cdp.pressKey("Enter");
+              if (targetElement.role === "searchbox" || targetElement.tag === "input") {
+                await this.cdp.pressKey("Enter");
+              }
             }
             stepCompleted = true;
-          } else if (decision.actionType === "click") {
+          } else if (decision.actionType === "click" || !targetElement.isInput) {
             this.log(
               currentStep.subgoal,
               "success",
               decision.confidence,
-              `Jev 选定按钮: 贝塞尔轨迹点击 -> ${elemDesc}`,
+              `Jev 选定目标: 贝塞尔轨迹点击 -> ${elemDesc}`,
               { id: targetElement.id, description: elemDesc },
               "click"
             );

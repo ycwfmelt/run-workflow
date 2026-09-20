@@ -92,7 +92,7 @@ export class TypeSafeService {
       target_element: {
         type: "choice",
         instructions:
-          "Which interactive element in `interactive_elements` best accomplishes `task.current_subgoal`?",
+          "Which interactive element in `interactive_elements` best accomplishes `task.current_subgoal`? Note: If multiple similar action buttons exist in table rows (such as multiple '处理' or '查看' buttons), select the first row's button by default unless a specific row or identifier is mentioned in the subgoal.",
         criteria: elementCriteria,
       },
       action_type: {
