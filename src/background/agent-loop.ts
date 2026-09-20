@@ -202,6 +202,7 @@ export class AgentLoop {
           prompt,
           pageState,
           this.cdp,
+          this.typesafeService,
           this.config,
           {
             onLog: (phase, level, msg) => this.log(phase, level === "info" ? "success" : level, 1.0, msg),
