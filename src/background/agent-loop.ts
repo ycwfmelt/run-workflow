@@ -80,7 +80,7 @@ export class AgentLoop {
         currentTask: this.currentTask,
         currentStep: this.currentStepIndex + 1,
         recentLogs: this.logs.slice(-25),
-        canSaveWorkflow: !!(this.status === "completed" && this.lastExecutedWorkflow && !this.lastExecutedWorkflow.isBuiltIn && this.lastExecutedWorkflow.script),
+        canSaveWorkflow: !!(this.status === "completed" && this.lastExecutedWorkflow && this.lastExecutedWorkflow.script),
         workflowName: this.lastExecutedWorkflow?.meta?.description || this.lastExecutedWorkflow?.meta?.name,
       } as MessagePayload)
       .catch(() => {});

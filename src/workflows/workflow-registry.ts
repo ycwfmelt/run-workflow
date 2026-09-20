@@ -3,108 +3,6 @@ import {
   WorkflowFunction,
   WorkflowMeta,
 } from "./types.js";
-import {
-  meta as newBossMeta,
-  run as newBossRun,
-} from "./builtin/crm-batch-batch-approval.js";
-
-const NEW_BOSS_SCRIPT = `async function run(ctx) {
-  const { jev, getPage, phase, log, wait, scroll, args } = ctx;
-  let processedCount = 0;
-  const maxItems = args?.maxItems || 50;
-
-  log(\`🚀 启动 NEW-BOSS 批量自动化审批工作流 (上限: \${maxItems} 笔)...\`);
-
-  while (processedCount < maxItems) {
-    phase("检索待处理列表");
-    const page = await getPage();
-
-    // 筛选当前视口中的所有【处理】/【办理】按钮
-    const processButtons = page.elements.filter(
-      (e) =>
-        e.text.startsWith("处理") ||
-        e.text === "处理" ||
-        e.text.startsWith("办理") ||
-        e.text === "办理"
-    );
-
-    if (processButtons.length === 0) {
-      // 向下轻微滚动扫描
-      await scroll(350);
-      await wait(1000);
-      const afterScroll = await getPage();
-      const retryButtons = afterScroll.elements.filter(
-        (e) => e.text.startsWith("处理") || e.text === "处理"
-      );
-
-      if (retryButtons.length === 0) {
-        // 检测分页【下一页】
-        const nextPage = afterScroll.elements.find(
-          (e) =>
-            e.text.includes("下一页") &&
-            e.isClickable &&
-            !e.selector.includes("disabled")
-        );
-        if (nextPage) {
-          log("当前页待办已处理完，正在翻至下一页...");
-          await jev("点击【下一页】按钮翻页");
-          await wait(2000);
-          continue;
-        }
-
-        log(\`🎉 待办列表中已无更多待审批项！本次自动化完成。\`);
-        break;
-      }
-    }
-
-    log(\`发现待办合同，开始审批流程...\`);
-    phase("详情页审批");
-    await jev("点击列表第一项的【处理】或【办理】按钮");
-    await wait(2500);
-
-    // 详情页内寻找【通过】或【同意】
-    phase("二次确认");
-    await jev("在审批详情页寻找并点击【同意】或【审批通过】主操作按钮");
-    await wait(1200);
-
-    // 弹窗二次确认
-    const afterApprove = await getPage();
-    if (afterApprove.activeModal?.isOpen) {
-      log("检测到确认弹窗，执行最终确认...");
-      await jev("在确认对话框中点击【确定】或【提交】按钮");
-      await wait(1500);
-    }
-
-    processedCount++;
-    log(\`第 \${processedCount} 笔审批完成！\`);
-
-    // 返回列表页
-    phase("返回待办列表");
-    const returnBtn = (await getPage()).elements.find((e) =>
-      ["返回", "关闭", "Back"].some((kw) => e.text.includes(kw))
-    );
-    if (returnBtn) {
-      await jev("点击【返回】或【关闭】按钮返回工作项列表");
-    } else {
-      await scroll(-500);
-    }
-    await wait(1500);
-  }
-
-  log(\`🏁 批量审批工作流完成，累计成功审批: \${processedCount} 笔\`);
-  return { processedCount };
-}`;
-
-const BUILTIN_WORKFLOWS: WorkflowDefinition[] = [
-  {
-    id: "crm_batch_approval",
-    meta: newBossMeta,
-    fn: newBossRun,
-    script: NEW_BOSS_SCRIPT,
-    isBuiltIn: true,
-    createdAt: 1726700000000,
-  },
-];
 
 const STORAGE_KEY = "ang_custom_workflows";
 const LEGACY_STORAGE_KEY = "jevpilot_custom_workflows";
@@ -165,13 +63,13 @@ export function matchUrlRule(url: string, rule?: string): boolean {
 
 export class WorkflowRegistry {
   /**
-   * Get all available workflows (built-in + saved custom)
+   * Get all registered dynamic workflows
    */
   static async getAllWorkflows(): Promise<WorkflowDefinition[]> {
     try {
       const stored: any = await chrome.storage.local.get([STORAGE_KEY, LEGACY_STORAGE_KEY]);
-      const custom: WorkflowDefinition[] = (stored[STORAGE_KEY] || stored[LEGACY_STORAGE_KEY] || []) as WorkflowDefinition[];
-      const hydratedCustom = custom.map((wf) => {
+      const list: WorkflowDefinition[] = (stored[STORAGE_KEY] || stored[LEGACY_STORAGE_KEY] || []) as WorkflowDefinition[];
+      return list.map((wf) => {
         if (!wf.fn && wf.script) {
           try {
             wf.fn = compileScriptToFunction(wf.script);
@@ -181,9 +79,8 @@ export class WorkflowRegistry {
         }
         return wf;
       });
-      return [...BUILTIN_WORKFLOWS, ...hydratedCustom];
     } catch {
-      return [...BUILTIN_WORKFLOWS];
+      return [];
     }
   }
 
@@ -197,7 +94,7 @@ export class WorkflowRegistry {
   }
 
   /**
-   * Save or update a custom workflow script (as JS function)
+   * Save or update a dynamic workflow script (as JS function)
    */
   static async saveWorkflow(
     id: string,
@@ -257,7 +154,7 @@ export class WorkflowRegistry {
     const list: WorkflowDefinition[] = (stored[STORAGE_KEY] || []) as WorkflowDefinition[];
     const filtered = list.filter((w) => w.id !== id);
     if (filtered.length === list.length) {
-      return false; // Not found or is built-in
+      return false;
     }
     await chrome.storage.local.set({ [STORAGE_KEY]: filtered });
     return true;

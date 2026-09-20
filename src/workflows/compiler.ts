@@ -20,9 +20,12 @@ The function receives a single parameter \`ctx\` providing:
 - \`await ctx.scroll(deltaY: number)\`: Scrolls the viewport down (positive) or up (negative).
 
 ### Workflow Engineering Guidelines:
-1. Control Flow:
-   - For batch / iterative tasks (e.g. "处理列表里全部待审批", "逐个审核", "批量处理"): Write a clean native \`while\` loop with \`await getPage()\` inspection, clicking items one by one, handling pagination \`下一页\` when needed, and breaking when no items remain.
-   - For single-pass tasks: Write clear sequential steps.
+1. Dynamic Real-Time Termination & Control Flow:
+   - Dynamic workflows must ALWAYS inspect the actual live webpage state via \`await getPage()\` in real-time to determine completion, NEVER terminate on an arbitrary numeric count!
+   - For batch / iterative tasks (e.g. "批量审批", "处理全部待办", "逐个审核"):
+     Use \`while (true)\` or \`while (!isDone)\`. Each loop iteration starts by calling \`const page = await getPage()\` and searching for pending target buttons/items.
+     If no pending items are found in the current viewport, try \`await scroll(300)\` or check for pagination \`下一页\`. If neither exists, break and log "页面已无待处理项，任务全部完成！".
+   - For single-pass tasks: Write clear sequential steps with verification.
 2. Modal Dialog Handling:
    - Web applications often show a secondary confirmation modal (e.g. "确认通过该合同吗？").
    - Always check \`if (page.activeModal?.isOpen)\` or after clicking an action, check \`const after = await getPage(); if (after.activeModal?.isOpen) await ctx.jev("在弹窗中点击【确认】按钮");\`
@@ -162,36 +165,52 @@ ${visibleSample.map((e) => `  • <${e.tag}> "${e.text}" (${e.role})`).join("\n"
     if (isLoopIntent) {
       script = `
 const { jev, getPage, wait, scroll, phase, log } = ctx;
-let count = 0;
-const maxItems = 50;
+let processedCount = 0;
+const safetyLimit = 100;
 
-phase("检索列表项");
-log("🚀 启动批量自动化工作流 (上限: " + maxItems + " 项)...");
+phase("扫描待办项");
+log("🚀 启动批量自动化工作流，实时检测页面待处理项...");
 
-while (count < maxItems) {
+while (processedCount < safetyLimit) {
   const page = await getPage();
-  const processBtn = page.elements.find(e => 
-    e.text.includes("处理") || e.text.includes("审批") || e.text.includes("办理")
+
+  // 1. 实时寻找当前视口中的可操作项（处理/审批/办理）
+  let processBtn = page.elements.find(e => 
+    (e.text.startsWith("处理") || e.text.startsWith("审批") || e.text.startsWith("办理")) && e.isClickable
   );
 
+  // 2. 若当前视口未找到，轻微向下滚动扫描
   if (!processBtn) {
-    // 尝试向下滚动扫描
-    await scroll(350);
-    await wait(1000);
-    const afterScroll = await getPage();
-    const retryBtn = afterScroll.elements.find(e => 
-      e.text.includes("处理") || e.text.includes("审批")
+    await scroll(300);
+    await wait(800);
+    const scrolledPage = await getPage();
+    processBtn = scrolledPage.elements.find(e => 
+      (e.text.startsWith("处理") || e.text.startsWith("审批") || e.text.startsWith("办理")) && e.isClickable
     );
-    if (!retryBtn) {
-      log("🎉 列表中无更多待处理项，工作流顺利完成。");
-      break;
-    }
   }
 
-  count++;
-  log("正在处理第 " + count + " 笔事项...");
+  // 3. 实时判断：如果依然没有，检查是否有【下一页】翻页
+  if (!processBtn) {
+    const nextPage = page.elements.find(e => 
+      e.text.includes("下一页") && e.isClickable && !e.selector.includes("disabled")
+    );
+    if (nextPage) {
+      log("当前页待办已处理完，正在翻至下一页...");
+      await jev("点击【下一页】翻页");
+      await wait(2000);
+      continue;
+    }
+
+    // 实时检测无更多待办，自然完成
+    log("🎉 页面实时检测完成：已无更多待处理事项，工作流顺利结束！");
+    break;
+  }
+
+  // 4. 实时处理该项
+  processedCount++;
+  log("正在处理第 " + processedCount + " 笔事项...");
   phase("处理详情");
-  await jev("在列表中点击下一条【处理】按钮");
+  await jev("在列表中点击下一条【处理】或【办理】按钮");
   await wait(1800);
 
   // 检查详情页审批操作
@@ -213,7 +232,7 @@ while (count < maxItems) {
     await wait(1500);
   }
 
-  // 返回列表
+  // 返回列表继续下一次实时检测
   const returnCheck = await getPage();
   if (/DETAIL|APPLY/i.test(returnCheck.url)) {
     const returnBtn = returnCheck.elements.find(e => e.text === "返回" || e.ariaLabel === "返回");
@@ -223,7 +242,9 @@ while (count < maxItems) {
     }
   }
 }
-return { processedCount: count };
+
+log("🏁 自动化流程结束，累计实时处理完成: " + processedCount + " 项");
+return { processedCount };
 `;
     } else {
       script = `

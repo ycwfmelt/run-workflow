@@ -98,15 +98,13 @@ function renderWorkflowList() {
     const card = document.createElement("div");
     card.className = "wf-card";
     card.id = `card_${wf.id}`;
-
-    const isBuiltIn = !!wf.isBuiltIn;
     const matchRule = wf.meta.matchUrl || "*";
 
     card.innerHTML = `
       <div class="wf-card-header">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-weight: 600; font-size: 13px; color: #f8fafc;">${escapeHtml(wf.meta.name)}</span>
-          <span class="${isBuiltIn ? "tag-builtin" : "tag-custom"}">${isBuiltIn ? "系统内置 (Built-in)" : "自定义 (Custom)"}</span>
+          <span class="tag-custom">动态 Recipe</span>
         </div>
         <div style="font-size: 11px; color: #64748b; font-family: monospace;">ID: ${escapeHtml(wf.id)}</div>
       </div>
@@ -114,17 +112,17 @@ function renderWorkflowList() {
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
         <div class="form-group" style="margin-bottom: 0;">
           <label>工作流名称 (Name):</label>
-          <input type="text" class="wf-name-input" value="${escapeHtml(wf.meta.name)}" ${isBuiltIn ? 'readonly style="background: #172033; color: #94a3b8;"' : ""} />
+          <input type="text" class="wf-name-input" value="${escapeHtml(wf.meta.name)}" />
         </div>
         <div class="form-group" style="margin-bottom: 0;">
           <label>适用页面规则 (Match Rule): <span class="label-hint">(* 全部, /正则/, 域名)</span></label>
-          <input type="text" class="wf-match-input" value="${escapeHtml(matchRule)}" placeholder="*" ${isBuiltIn ? 'readonly style="background: #172033; color: #94a3b8;"' : ""} />
+          <input type="text" class="wf-match-input" value="${escapeHtml(matchRule)}" placeholder="*" />
         </div>
       </div>
 
       <div class="form-group" style="margin-bottom: 10px;">
         <label>功能描述 (Description):</label>
-        <input type="text" class="wf-desc-input" value="${escapeHtml(wf.meta.description || "")}" placeholder="工作流用途简述..." ${isBuiltIn ? 'readonly style="background: #172033; color: #94a3b8;"' : ""} />
+        <input type="text" class="wf-desc-input" value="${escapeHtml(wf.meta.description || "")}" placeholder="工作流用途简述..." />
       </div>
 
       <div class="form-group" style="margin-bottom: 10px;">
@@ -132,19 +130,15 @@ function renderWorkflowList() {
           <label style="margin-bottom: 0;">JavaScript 异步执行函数 (Workflow Function):</label>
           <button type="button" class="btn-secondary toggle-code-btn" style="padding: 2px 8px; font-size: 11px;">收起/展开代码 ⏷</button>
         </div>
-        <textarea class="code-textarea wf-script-input" spellcheck="false" ${isBuiltIn ? 'readonly style="background: #020617; color: #7dd3fc;"' : ""}>${escapeHtml(wf.script || "")}</textarea>
+        <textarea class="code-textarea wf-script-input" spellcheck="false">${escapeHtml(wf.script || "")}</textarea>
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
         <div class="wf-save-status" style="font-size: 11px; color: var(--success); font-weight: 500;"></div>
         <div style="display: flex; gap: 8px;">
           <button type="button" class="btn-secondary copy-code-btn" style="font-size: 11px; padding: 5px 10px;">📋 复制代码</button>
-          ${isBuiltIn ? `
-            <button type="button" class="btn-secondary clone-wf-btn" style="font-size: 11px; padding: 5px 10px; background: #1e1b4b; color: #c7d2fe; border-color: #4338ca;">📑 基于此模板克隆</button>
-          ` : `
-            <button type="button" class="btn-secondary delete-wf-btn" style="font-size: 11px; padding: 5px 10px; color: #fca5a5; border-color: #7f1d1d;">🗑️ 删除</button>
-            <button type="button" class="btn-save save-wf-btn" style="font-size: 11px; padding: 5px 12px;">💾 保存修改</button>
-          `}
+          <button type="button" class="btn-secondary delete-wf-btn" style="font-size: 11px; padding: 5px 10px; color: #fca5a5; border-color: #7f1d1d;">🗑️ 删除</button>
+          <button type="button" class="btn-save save-wf-btn" style="font-size: 11px; padding: 5px 12px;">💾 保存修改</button>
         </div>
       </div>
     `;
@@ -174,74 +168,57 @@ function renderWorkflowList() {
       });
     });
 
-    // Clone template for built-in
-    if (isBuiltIn) {
-      const cloneBtn = card.querySelector(".clone-wf-btn") as HTMLButtonElement;
-      cloneBtn?.addEventListener("click", async () => {
-        const newId = `custom_clone_${Date.now()}`;
-        const newMeta = {
-          ...wf.meta,
-          name: `${wf.meta.name}_副本`,
-          description: `${wf.meta.description} (自定义修改版)`,
-        };
-        await saveWorkflowToBackend(newId, newMeta, wf.script || "");
-        await loadWorkflows();
-        const createdEl = document.getElementById(`card_${newId}`);
-        createdEl?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-    } else {
-      // Save custom workflow
-      const saveWfBtn = card.querySelector(".save-wf-btn") as HTMLButtonElement;
-      const deleteWfBtn = card.querySelector(".delete-wf-btn") as HTMLButtonElement;
-      const nameInput = card.querySelector(".wf-name-input") as HTMLInputElement;
-      const matchInput = card.querySelector(".wf-match-input") as HTMLInputElement;
-      const descInput = card.querySelector(".wf-desc-input") as HTMLInputElement;
-      const statusEl = card.querySelector(".wf-save-status") as HTMLElement;
+    // Save custom workflow
+    const saveWfBtn = card.querySelector(".save-wf-btn") as HTMLButtonElement;
+    const deleteWfBtn = card.querySelector(".delete-wf-btn") as HTMLButtonElement;
+    const nameInput = card.querySelector(".wf-name-input") as HTMLInputElement;
+    const matchInput = card.querySelector(".wf-match-input") as HTMLInputElement;
+    const descInput = card.querySelector(".wf-desc-input") as HTMLInputElement;
+    const statusEl = card.querySelector(".wf-save-status") as HTMLElement;
 
-      saveWfBtn?.addEventListener("click", async () => {
-        const newScript = scriptInput.value.trim();
-        const newName = nameInput.value.trim() || wf.meta.name;
-        const newMatch = matchInput.value.trim() || "*";
-        const newDesc = descInput.value.trim() || wf.meta.description;
+    saveWfBtn?.addEventListener("click", async () => {
+      const newScript = scriptInput.value.trim();
+      const newName = nameInput.value.trim() || wf.meta.name;
+      const newMatch = matchInput.value.trim() || "*";
+      const newDesc = descInput.value.trim() || wf.meta.description;
 
-        // Validate JS function syntax
-        try {
-          compileScriptToFunction(newScript);
-        } catch (syntaxErr: any) {
-          alert(`JavaScript 语法错误，无法编译:\n${syntaxErr.message}`);
-          return;
-        }
+      // Validate JS function syntax
+      try {
+        compileScriptToFunction(newScript);
+      } catch (syntaxErr: any) {
+        alert(`JavaScript 语法错误，无法编译:\n${syntaxErr.message}`);
+        return;
+      }
 
-        saveWfBtn.textContent = "正在保存...";
-        const updatedMeta = {
-          ...wf.meta,
-          name: newName,
-          matchUrl: newMatch,
-          description: newDesc,
-        };
+      saveWfBtn.textContent = "正在保存...";
+      const updatedMeta = {
+        ...wf.meta,
+        name: newName,
+        matchUrl: newMatch,
+        description: newDesc,
+      };
 
-        const res = await saveWorkflowToBackend(wf.id, updatedMeta, newScript);
-        if (res && res.success) {
-          saveWfBtn.textContent = "💾 保存修改";
-          statusEl.textContent = "✅ 工作流修改已成功保存！";
-          setTimeout(() => {
-            statusEl.textContent = "";
-          }, 2500);
-        } else {
-          saveWfBtn.textContent = "💾 保存修改";
-          alert(`保存失败: ${res?.error || "未知错误"}`);
-        }
-      });
+      const res = await saveWorkflowToBackend(wf.id, updatedMeta, newScript);
+      if (res && res.success) {
+        saveWfBtn.textContent = "💾 保存修改";
+        statusEl.textContent = "✅ 工作流修改已成功保存！";
+        setTimeout(() => {
+          statusEl.textContent = "";
+        }, 2500);
+      } else {
+        saveWfBtn.textContent = "💾 保存修改";
+        alert(`保存失败: ${res?.error || "未知错误"}`);
+      }
+    });
 
-      // Delete custom workflow
-      deleteWfBtn?.addEventListener("click", async () => {
-        if (!confirm(`确定要永久删除工作流 [${wf.meta.name}] 吗？`)) {
-          return;
-        }
-        await deleteWorkflowFromBackend(wf.id);
-        await loadWorkflows();
-      });
-    }
+    // Delete custom workflow
+    deleteWfBtn?.addEventListener("click", async () => {
+      if (!confirm(`确定要永久删除工作流 [${wf.meta.name}] 吗？`)) {
+        return;
+      }
+      await deleteWorkflowFromBackend(wf.id);
+      await loadWorkflows();
+    });
 
     workflowsContainer.appendChild(card);
   });
@@ -252,23 +229,48 @@ addNewWorkflowBtn.addEventListener("click", async () => {
   const newId = `custom_${Date.now()}`;
   const defaultScript = `async function run(ctx) {
   const { jev, getPage, phase, log, wait, scroll, args } = ctx;
-  log("🚀 启动自定义动态工作流...");
+  log("🚀 启动动态工作流...");
 
-  phase("步骤 1: 探查页面状态");
-  const page = await getPage();
-  log(\`当前页面含有 \${page.elements.length} 个可视元素\`);
+  // 实时条件循环模式 (动态检查页面元素，处理完自然退出，不依赖死板计数)
+  while (true) {
+    phase("实时检测页面项");
+    const page = await getPage();
 
-  // 使用 TypeSafe Jev 高精度微操作
-  // await jev("点击页面主操作按钮");
-  // await wait(1000);
+    // 1. 实时检测当前页是否还有待处理的目标按钮
+    const target = page.elements.find(e => e.text.includes("处理") && e.isClickable);
 
-  log("🎉 自定义工作流执行完成！");
+    if (!target) {
+      // 检查是否有下一页翻页
+      const nextPage = page.elements.find(e => e.text.includes("下一页") && e.isClickable && !e.selector.includes("disabled"));
+      if (nextPage) {
+        log("当前页已无待办，翻至下一页...");
+        await jev("点击【下一页】");
+        await wait(1800);
+        continue;
+      }
+      log("🎉 实时检测完成：当前已无更多待办项，任务顺利完成！");
+      break;
+    }
+
+    // 2. 调用 TypeSafe Jev 执行高精度微操作
+    log(\`发现待办项 "\${target.text}"，正在处理...\`);
+    await jev("点击【处理】按钮");
+    await wait(1500);
+
+    // 3. 弹窗二次确认守卫
+    const after = await getPage();
+    if (after.activeModal?.isOpen) {
+      await jev("在确认弹窗中点击【确定】按钮");
+      await wait(1000);
+    }
+  }
+
   return { success: true };
 }`;
 
   const newMeta = {
     name: "新自定义工作流",
-    description: "点击右侧保存前可在此输入工作流详细描述与逻辑",
+    description: "实时检测页面状态的动态工作流 Recipe",
     matchUrl: "*",
   };
 
