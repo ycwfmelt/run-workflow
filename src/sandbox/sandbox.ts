@@ -149,13 +149,13 @@ window.addEventListener("message", async (event) => {
           const line = getCallerLine();
           return await sendCtxCall(executionId, "agent", [subgoal, options], line);
         },
-        successCheck: async (customGoal?: string) => {
+        successCheck: async (criteria?: any, options?: any) => {
           const line = getCallerLine();
-          return await sendCtxCall(executionId, "successCheck", [customGoal], line);
+          return await sendCtxCall(executionId, "successCheck", [criteria, options], line);
         },
-        verify: async (customGoal?: string) => {
+        verify: async (criteria?: any, options?: any) => {
           const line = getCallerLine();
-          return await sendCtxCall(executionId, "successCheck", [customGoal], line);
+          return await sendCtxCall(executionId, "successCheck", [criteria, options], line);
         },
         getPage: async () => {
           const line = getCallerLine();

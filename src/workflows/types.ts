@@ -15,23 +15,40 @@ export interface WorkflowMeta {
   whenToUse?: string;
 }
 
+export type SuccessCheckCriteria =
+  | string
+  | { url?: string; text?: string; selector?: string; disappeared?: string };
+
+export interface SuccessCheckOptions {
+  timeout?: number;
+  pollInterval?: number;
+  strict?: boolean;
+}
+
 export interface SuccessCheckResult {
   isGoalReached: boolean;
   confidence: number;
   reason?: string;
+  elapsedMs?: number;
   hasChanged?: boolean;
 }
 
 export interface WorkflowContext {
   /**
-   * Evaluates whether the current goal or step has been accomplished on the page
+   * First-class runtime primitive: Adaptive state guard with fast-exit polling & timeout
    */
-  successCheck: (customGoal?: string) => Promise<SuccessCheckResult>;
+  successCheck: (
+    criteria?: SuccessCheckCriteria | number,
+    options?: number | SuccessCheckOptions
+  ) => Promise<SuccessCheckResult>;
 
   /**
    * Alias for successCheck()
    */
-  verify: (customGoal?: string) => Promise<SuccessCheckResult>;
+  verify: (
+    criteria?: SuccessCheckCriteria | number,
+    options?: number | SuccessCheckOptions
+  ) => Promise<SuccessCheckResult>;
   /**
    * Primary executor: TypeSafe Jev System One
    * Evaluates current DOM, chooses target element, dispatches Bezier mouse/keyboard CDP event

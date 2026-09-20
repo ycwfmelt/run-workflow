@@ -433,23 +433,101 @@ export class AgentLoop {
         }
         return decision;
       },
-      successCheck: async (customGoal?: string) => {
+      successCheck: async (criteria?: any, options?: any) => {
         traceLine();
         if (this.shouldStop) throw new Error("Workflow stopped by user");
         while (this.isPaused && !this.shouldStop) await sleep(500);
 
-        const goalToCheck = customGoal || this.currentTask || "当前任务";
-        const pageState = await this.requestPageState(tabId);
+        let timeoutMs = 3000;
+        let pollInterval = 150;
+        let effectiveCriteria: any = criteria;
 
-        // 1. Fast heuristics on page content
-        const pageText = pageState.elements.map((e) => e.text || "").join(" ");
+        if (typeof criteria === "number") {
+          timeoutMs = criteria;
+          effectiveCriteria = undefined;
+        } else if (typeof options === "number") {
+          timeoutMs = options;
+        } else if (typeof options === "object" && options !== null) {
+          if (typeof options.timeout === "number") timeoutMs = options.timeout;
+          if (typeof options.pollInterval === "number") pollInterval = options.pollInterval;
+        }
+
+        const goalToCheck =
+          (typeof effectiveCriteria === "string" ? effectiveCriteria : effectiveCriteria?.text || effectiveCriteria?.url) ||
+          this.currentTask ||
+          "当前任务达成状态";
+
+        const startTime = Date.now();
+        let finalPageState: PageState | null = null;
+        let matchedFast = false;
+
         const successKeywords = [
           "已成功", "领取成功", "提交成功", "保存成功", "处理成功", "审批通过",
           "已领取", "已连续登录", "今日已签到", "今日已领取", "任务已完成", "已完成", "已通过"
         ];
-        const hasSuccessKeyword = successKeywords.some((kw) => pageText.includes(kw));
 
-        // 2. Query TypeSafe System One for structured goal verification
+        // Active polling loop: checks condition every pollInterval until timeout
+        while (Date.now() - startTime <= timeoutMs) {
+          if (this.shouldStop) throw new Error("Workflow stopped by user");
+
+          finalPageState = await this.requestPageState(tabId);
+          const pageText = finalPageState.elements.map((e) => e.text || "").join(" ");
+
+          // 1. Exact URL match (if object provided with url)
+          if (typeof effectiveCriteria === "object" && effectiveCriteria !== null && effectiveCriteria.url) {
+            if (finalPageState.url.includes(effectiveCriteria.url)) {
+              matchedFast = true;
+              break;
+            }
+          }
+
+          // 2. Exact Text match (if object provided with text)
+          if (typeof effectiveCriteria === "object" && effectiveCriteria !== null && effectiveCriteria.text) {
+            if (pageText.includes(effectiveCriteria.text)) {
+              matchedFast = true;
+              break;
+            }
+          }
+
+          // 3. String criteria match or general success keyword
+          if (typeof effectiveCriteria === "string" && effectiveCriteria.length > 0) {
+            if (finalPageState.url.includes(effectiveCriteria) || pageText.includes(effectiveCriteria)) {
+              matchedFast = true;
+              break;
+            }
+          }
+
+          // 4. Common success keywords
+          if (successKeywords.some((kw) => pageText.includes(kw))) {
+            matchedFast = true;
+            break;
+          }
+
+          // If timeout is small or elapsed, exit polling
+          if (Date.now() - startTime + pollInterval > timeoutMs) {
+            break;
+          }
+          await sleep(pollInterval);
+        }
+
+        const elapsed = Date.now() - startTime;
+
+        if (matchedFast) {
+          this.log(
+            "状态校验",
+            "success",
+            1.0,
+            `⚡ [SuccessCheck 极速就绪] "${goalToCheck}" -> ✅ 状态已达成 (耗时仅 ${elapsed}ms，无需盲等)`
+          );
+          return {
+            isGoalReached: true,
+            confidence: 1.0,
+            elapsedMs: elapsed,
+          };
+        }
+
+        // If fast condition not matched within timeout, evaluate with S1
+        const pageState = finalPageState || (await this.requestPageState(tabId));
         try {
           const decision = await this.typesafeService.decideNextAction(
             goalToCheck,
@@ -458,33 +536,28 @@ export class AgentLoop {
             pageState.elements
           );
 
-          const isReached = Boolean(decision.isGoalReached || decision.actionType === "finish" || hasSuccessKeyword);
+          const isReached = Boolean(decision.isGoalReached || decision.actionType === "finish");
           const conf = Math.max(decision.confidence, decision.goalProbability || 0.8);
 
           this.log(
             "状态校验",
             isReached ? "success" : "info",
             conf,
-            `[SuccessCheck] 目标 "${goalToCheck}" -> ${isReached ? "✅ 验证已达成" : "⏳ 尚未达成，需继续执行"}`
+            `[SuccessCheck] 目标 "${goalToCheck}" -> ${isReached ? "✅ 语义校验达成" : "⏳ 尚未达成"} (耗时 ${elapsed}ms)`
           );
 
           return {
             isGoalReached: isReached,
             confidence: conf,
             reason: decision.reasoningNote,
+            elapsedMs: elapsed,
           };
-        } catch (err: any) {
-          const isReached = hasSuccessKeyword;
-          this.log(
-            "状态校验",
-            isReached ? "success" : "info",
-            hasSuccessKeyword ? 0.9 : 0.5,
-            `[SuccessCheck 探查] -> ${isReached ? "✅ 检测到成功标志文本" : "⏳ 尚未检测到完成标志"}`
-          );
+        } catch {
           return {
-            isGoalReached: isReached,
-            confidence: hasSuccessKeyword ? 0.9 : 0.5,
-            reason: "Heuristic DOM inspection",
+            isGoalReached: false,
+            confidence: 0.5,
+            reason: "Timeout reached without match",
+            elapsedMs: elapsed,
           };
         }
       },
