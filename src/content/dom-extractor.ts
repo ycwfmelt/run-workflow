@@ -115,7 +115,12 @@ function isInteractive(el: HTMLElement): boolean {
 }
 
 function cleanText(text: string): string {
-  return text.replace(/\s+/g, " ").trim().slice(0, 100);
+  return text
+    .replace(/\s+/g, " ")
+    .replace(/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g, "$1$2")
+    .replace(/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g, "$1$2") // double pass for 3-char sequences
+    .trim()
+    .slice(0, 100);
 }
 
 function extractElementText(el: HTMLElement): string {
@@ -463,7 +468,7 @@ export function extractInteractiveElements(): PageState {
     iframes: diagnosticsData.iframes,
     shadowRootCount: diagnosticsData.shadowRootCount,
     interactiveElementsCount: interactiveList.length,
-    sampleElements: interactiveList.slice(0, 15).map((el) => ({
+    sampleElements: interactiveList.slice(0, 35).map((el) => ({
       id: el.id,
       tag: el.tag,
       text: el.text || el.placeholder || "",
