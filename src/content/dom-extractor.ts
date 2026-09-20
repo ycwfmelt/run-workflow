@@ -144,7 +144,7 @@ function extractElementText(el: HTMLElement): string {
     }
   }
 
-  // Contextualize table rows: e.g. "处理 (行数据: YS3839000006 | 翰思 | 综合平台RPA)"
+  // Contextualize table rows: e.g. "Action (Row data: Cell1 | Cell2)"
   const tr = el.closest("tr");
   if (tr) {
     const cells = Array.from(tr.querySelectorAll("td, th"))
@@ -157,7 +157,7 @@ function extractElementText(el: HTMLElement): string {
     }
   }
 
-  // Contextualize form items: e.g. "[合同编号] 支持模糊匹配"
+  // Contextualize form items: e.g. "[Field Label] Placeholder/Input"
   const formItem = el.closest(".ant-form-item, .el-form-item, .form-group, .form-item");
   if (formItem) {
     const labelEl = formItem.querySelector("label, .ant-form-item-label, .el-form-item__label");

@@ -99,7 +99,7 @@ export class TypeSafeService {
       target_element: {
         type: "choice",
         instructions:
-          "Which interactive element in `interactive_elements` best accomplishes `task.current_subgoal`? Note: If an active modal dialog is present (`page.active_modal`), prefer action buttons inside the dialog (e.g. '确认', '确定') to complete or dismiss the dialog. If multiple similar action buttons exist in table rows (such as multiple '处理' or '查看' buttons), select the first row's button by default unless a specific row or identifier is mentioned in the subgoal.",
+          "Which interactive element in `interactive_elements` best accomplishes `task.current_subgoal`? Note: If an active modal dialog is present (`page.active_modal`), prefer action buttons inside the dialog. If multiple similar action buttons exist, select the primary matching button unless specified otherwise.",
         criteria: elementCriteria,
       },
       action_type: {
@@ -152,7 +152,7 @@ export class TypeSafeService {
     const captchaAnswer = answers.is_blocked_by_captcha;
 
     const targetId = targetAnswer.choice;
-    const actionType = targetId === "none_of_above" ? "scroll" : actionAnswer.choice;
+    const actionType = targetId === "none_of_above" ? "none" : actionAnswer.choice;
 
     // Minimum confidence between target choice and action choice
     const overallConfidence = Math.min(

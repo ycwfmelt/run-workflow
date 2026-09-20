@@ -235,49 +235,20 @@ function renderWorkflowList() {
 addNewWorkflowBtn.addEventListener("click", async () => {
   const newId = `custom_${Date.now()}`;
   const defaultScript = `async function run(ctx) {
-  const { jev, getPage, phase, log, wait, scroll, args } = ctx;
+  const { jev, successCheck, phase, log, wait } = ctx;
   log("🚀 启动动态工作流...");
 
-  // 实时条件循环模式 (动态检查页面元素，处理完自然退出，不依赖死板计数)
-  while (true) {
-    phase("实时检测页面项");
-    const page = await getPage();
+  phase("第一阶段");
+  await jev("执行目标操作");
+  await successCheck({ url: "/target-path" }, { timeout: 3000 });
 
-    // 1. 实时检测当前页是否还有待处理的目标按钮
-    const target = page.elements.find(e => e.text.includes("处理") && e.isClickable);
-
-    if (!target) {
-      // 检查是否有下一页翻页
-      const nextPage = page.elements.find(e => e.text.includes("下一页") && e.isClickable && !e.selector.includes("disabled"));
-      if (nextPage) {
-        log("当前页已无待办，翻至下一页...");
-        await jev("点击【下一页】");
-        await wait(1800);
-        continue;
-      }
-      log("🎉 实时检测完成：当前已无更多待办项，任务顺利完成！");
-      break;
-    }
-
-    // 2. 调用 TypeSafe Jev 执行高精度微操作
-    log(\`发现待办项 "\${target.text}"，正在处理...\`);
-    await jev("点击【处理】按钮");
-    await wait(1500);
-
-    // 3. 弹窗二次确认守卫
-    const after = await getPage();
-    if (after.activeModal?.isOpen) {
-      await jev("在确认弹窗中点击【确定】按钮");
-      await wait(1000);
-    }
-  }
-
+  log("🎉 工作流执行完成！");
   return { success: true };
 }`;
 
   const newMeta = {
     name: "新自定义工作流",
-    description: "实时检测页面状态的动态工作流 Recipe",
+    description: "动态工作流 Recipe",
     matchUrl: "*",
   };
 

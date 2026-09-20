@@ -43,44 +43,15 @@ import{n as e,t}from"./storage-9lXoiOOs.js";import{r as n,t as r}from"./workflow
           <button type="button" class="btn-save save-wf-btn" style="font-size: 11px; padding: 5px 12px;">💾 保存修改</button>
         </div>
       </div>
-    `;let r=t.querySelector(`.toggle-code-btn`),i=t.querySelector(`.wf-script-input`);r.addEventListener(`click`,()=>{i.style.display===`none`?(i.style.display=`block`,r.textContent=`收起代码 ⏶`):(i.style.display=`none`,r.textContent=`展开代码 ⏷`)});let a=t.querySelector(`.copy-code-btn`);a.addEventListener(`click`,()=>{let e=i.value;navigator.clipboard.writeText(e).then(()=>{a.textContent=`已复制 ✓`,setTimeout(()=>{a.textContent=`📋 复制代码`},1500)})});let o=t.querySelector(`.save-wf-btn`),s=t.querySelector(`.delete-wf-btn`),c=t.querySelector(`.wf-name-input`),l=t.querySelector(`.wf-match-input`),u=t.querySelector(`.wf-desc-input`),d=t.querySelector(`.wf-save-status`);o?.addEventListener(`click`,async()=>{let t=i.value.trim(),n=c.value.trim()||e.meta.name,r=l.value.trim()||`*`,a=u.value.trim()||e.meta.description;o.textContent=`正在校验...`;try{let e=await chrome.runtime.sendMessage({type:`VALIDATE_WORKFLOW_SCRIPT`,script:t});if(e&&e.valid===!1){o.textContent=`💾 保存修改`,alert(`JavaScript 语法错误，无法编译:\n${e.error}`);return}}catch(e){console.warn(`Validation service notice:`,e)}o.textContent=`正在保存...`;let s={...e.meta,name:n,matchUrl:r,description:a},f=await O(e.id,s,t);f&&f.success?(o.textContent=`💾 保存修改`,d.textContent=`✅ 工作流修改已成功保存！`,setTimeout(()=>{d.textContent=``},2500)):(o.textContent=`💾 保存修改`,alert(`保存失败: ${f?.error||`未知错误`}`))}),s?.addEventListener(`click`,async()=>{confirm(`确定要永久删除工作流 [${e.meta.name}] 吗？`)&&(await k(e.id),await T())}),_.appendChild(t)})}g.addEventListener(`click`,async()=>{let e=`custom_${Date.now()}`;await O(e,{name:`新自定义工作流`,description:`实时检测页面状态的动态工作流 Recipe`,matchUrl:`*`},`async function run(ctx) {
-  const { jev, getPage, phase, log, wait, scroll, args } = ctx;
+    `;let r=t.querySelector(`.toggle-code-btn`),i=t.querySelector(`.wf-script-input`);r.addEventListener(`click`,()=>{i.style.display===`none`?(i.style.display=`block`,r.textContent=`收起代码 ⏶`):(i.style.display=`none`,r.textContent=`展开代码 ⏷`)});let a=t.querySelector(`.copy-code-btn`);a.addEventListener(`click`,()=>{let e=i.value;navigator.clipboard.writeText(e).then(()=>{a.textContent=`已复制 ✓`,setTimeout(()=>{a.textContent=`📋 复制代码`},1500)})});let o=t.querySelector(`.save-wf-btn`),s=t.querySelector(`.delete-wf-btn`),c=t.querySelector(`.wf-name-input`),l=t.querySelector(`.wf-match-input`),u=t.querySelector(`.wf-desc-input`),d=t.querySelector(`.wf-save-status`);o?.addEventListener(`click`,async()=>{let t=i.value.trim(),n=c.value.trim()||e.meta.name,r=l.value.trim()||`*`,a=u.value.trim()||e.meta.description;o.textContent=`正在校验...`;try{let e=await chrome.runtime.sendMessage({type:`VALIDATE_WORKFLOW_SCRIPT`,script:t});if(e&&e.valid===!1){o.textContent=`💾 保存修改`,alert(`JavaScript 语法错误，无法编译:\n${e.error}`);return}}catch(e){console.warn(`Validation service notice:`,e)}o.textContent=`正在保存...`;let s={...e.meta,name:n,matchUrl:r,description:a},f=await O(e.id,s,t);f&&f.success?(o.textContent=`💾 保存修改`,d.textContent=`✅ 工作流修改已成功保存！`,setTimeout(()=>{d.textContent=``},2500)):(o.textContent=`💾 保存修改`,alert(`保存失败: ${f?.error||`未知错误`}`))}),s?.addEventListener(`click`,async()=>{confirm(`确定要永久删除工作流 [${e.meta.name}] 吗？`)&&(await k(e.id),await T())}),_.appendChild(t)})}g.addEventListener(`click`,async()=>{let e=`custom_${Date.now()}`;await O(e,{name:`新自定义工作流`,description:`动态工作流 Recipe`,matchUrl:`*`},`async function run(ctx) {
+  const { jev, successCheck, phase, log, wait } = ctx;
   log("🚀 启动动态工作流...");
 
-  // 实时条件循环模式 (动态检查页面元素，处理完自然退出，不依赖死板计数)
-  while (true) {
-    phase("实时检测页面项");
-    const page = await getPage();
+  phase("第一阶段");
+  await jev("执行目标操作");
+  await successCheck({ url: "/target-path" }, { timeout: 3000 });
 
-    // 1. 实时检测当前页是否还有待处理的目标按钮
-    const target = page.elements.find(e => e.text.includes("处理") && e.isClickable);
-
-    if (!target) {
-      // 检查是否有下一页翻页
-      const nextPage = page.elements.find(e => e.text.includes("下一页") && e.isClickable && !e.selector.includes("disabled"));
-      if (nextPage) {
-        log("当前页已无待办，翻至下一页...");
-        await jev("点击【下一页】");
-        await wait(1800);
-        continue;
-      }
-      log("🎉 实时检测完成：当前已无更多待办项，任务顺利完成！");
-      break;
-    }
-
-    // 2. 调用 TypeSafe Jev 执行高精度微操作
-    log(\`发现待办项 "\${target.text}"，正在处理...\`);
-    await jev("点击【处理】按钮");
-    await wait(1500);
-
-    // 3. 弹窗二次确认守卫
-    const after = await getPage();
-    if (after.activeModal?.isOpen) {
-      await jev("在确认弹窗中点击【确定】按钮");
-      await wait(1000);
-    }
-  }
-
+  log("🎉 工作流执行完成！");
   return { success: true };
 }`),await T();let t=document.getElementById(`card_${e}`);if(t){t.scrollIntoView({behavior:`smooth`,block:`center`});let e=t.querySelector(`.wf-name-input`);e?.focus(),e?.select()}});function D(){let e=v.value.trim();if(!e){b.style.display=`none`;return}let t=S.filter(t=>n(e,t.meta.matchUrl));b.style.display=`block`,b.innerHTML=t.length>0?`
       🟢 <strong>匹配成功！</strong> 网址 <code>${C(e)}</code> 共命中 <strong>${t.length}</strong> 个工作流：<br>
