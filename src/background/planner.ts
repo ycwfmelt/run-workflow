@@ -138,13 +138,21 @@ export class TaskPlanner {
           });
         } else if (/(?:同意|通过|审批通过|核准)/.test(clause)) {
           steps.push({
-            subgoal: "在弹出的处理窗口或审批表单中找到并点击【同意】或【通过】确认按钮",
+            subgoal: "在弹出的处理窗口或审批表单中找到并点击【同意】或【通过】操作按钮",
             expectedOutcome: "审批同意操作完成",
+          });
+          steps.push({
+            subgoal: "若弹出二次确认弹窗（如提示\"确认通过吗\"），找到并点击弹窗中的【确认】或【确定】按钮完成最终审批",
+            expectedOutcome: "二次确认审批完成",
           });
         } else if (/(?:驳回|拒绝|不通过)/.test(clause)) {
           steps.push({
-            subgoal: "在弹窗或详情页中找到并点击【驳回】或【拒绝】按钮",
+            subgoal: "在弹窗或详情页中找到并点击【驳回】或【拒绝】操作按钮",
             expectedOutcome: "审批驳回操作完成",
+          });
+          steps.push({
+            subgoal: "若弹出二次确认弹窗，找到并点击弹窗中的【确认】或【确定】按钮完成最终驳回",
+            expectedOutcome: "二次确认驳回完成",
           });
         } else if (/(?:查询|搜索|检索)/.test(clause)) {
           steps.push({
@@ -161,10 +169,28 @@ export class TaskPlanner {
             subgoal: "找到并点击【新建】或【新增】按钮",
             expectedOutcome: "进入新建页面或弹窗",
           });
-        } else if (/(?:保存|提交|确定|确认)/.test(clause)) {
+        } else if (/(?:保存|提交)/.test(clause)) {
           steps.push({
             subgoal: "找到并点击【保存】或【提交】按钮",
             expectedOutcome: "表单已保存提交",
+          });
+          steps.push({
+            subgoal: "若弹出二次确认弹窗（如提示\"确认提交吗\"），找到并点击弹窗中的【确认】或【确定】按钮",
+            expectedOutcome: "二次确认提交完成",
+          });
+        } else if (/(?:删除|移除|作废)/.test(clause)) {
+          steps.push({
+            subgoal: "找到并点击【删除】或【作废】按钮",
+            expectedOutcome: "触发删除操作",
+          });
+          steps.push({
+            subgoal: "若弹出二次确认弹窗（如提示\"确认删除吗\"），找到并点击弹窗中的【确认】或【确定】按钮",
+            expectedOutcome: "二次确认删除完成",
+          });
+        } else if (/(?:确定|确认)/.test(clause)) {
+          steps.push({
+            subgoal: "找到并点击【确定】或【确认】按钮",
+            expectedOutcome: "确认操作完成",
           });
         } else if (/点击\s*["'“‘【\[](.+?)["'”’】\]]/.test(clause)) {
           const btnName = clause.match(/点击\s*["'“‘【\[](.+?)["'”’】\]]/)![1];
@@ -206,9 +232,10 @@ export class TaskPlanner {
     const url = `${endpoint.replace(/\/+$/, "")}/chat/completions`;
 
     const systemPrompt = `You are an expert web automation planner. 
-Break down the user's web task into 1 to 4 concrete sequential UI subgoals.
+Break down the user's web task into 1 to 5 concrete sequential UI subgoals.
 For each subgoal:
 - If clicking an action button (e.g. "处理", "审批", "同意", "查询"), describe the exact button name to find and click.
+- For actions that typically trigger secondary confirmation modals (such as "同意", "通过", "提交", "删除"), always append a conditional follow-up step: "若弹出二次确认弹窗（如提示确认通过/确认提交），找到并点击【确认】或【确定】按钮".
 - If entering text, explicitly set 'typeText'.
 Return strictly valid JSON with this format:
 {

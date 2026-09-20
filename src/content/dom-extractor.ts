@@ -164,6 +164,26 @@ function extractElementText(el: HTMLElement): string {
     }
   }
 
+  // Contextualize modal dialog items: e.g. "确认 (弹窗提示: 确认通过吗？)"
+  const dialog = el.closest(
+    ".ant-modal, .ant-modal-confirm, .el-dialog, .el-message-box, [role='dialog'], .modal"
+  );
+  if (dialog) {
+    const titleEl = dialog.querySelector(
+      ".ant-modal-confirm-title, .ant-modal-title, .el-dialog__title, .el-message-box__title, .modal-title, [class*='title'], h1, h2, h3, h4"
+    );
+    let titleText = titleEl ? cleanText(titleEl.textContent || "") : "";
+    if (!titleText) {
+      const contentEl = dialog.querySelector(
+        ".ant-modal-confirm-content, .el-message-box__message, .ant-modal-body, .modal-body"
+      );
+      if (contentEl) titleText = cleanText(contentEl.textContent || "");
+    }
+    if (titleText && (!titleEl || !titleEl.contains(el))) {
+      return mainText ? `${mainText} (弹窗提示: ${titleText})` : `(弹窗提示: ${titleText})`;
+    }
+  }
+
   return mainText;
 }
 
@@ -358,6 +378,38 @@ export function extractInteractiveElements(): PageState {
     filtered.push(item);
   }
 
+  // Detect active modal / confirmation dialog
+  let activeModalInfo: { isOpen: boolean; title: string } | undefined = undefined;
+  const modalEl = document.querySelector<HTMLElement>(
+    ".ant-modal-confirm, .ant-modal-content, .el-dialog__wrapper, .el-message-box__wrapper, [role='dialog'], dialog[open]"
+  );
+
+  if (modalEl && isVisible(modalEl, { x: 0, y: 0 })) {
+    const titleEl = modalEl.querySelector(
+      ".ant-modal-confirm-title, .ant-modal-title, .el-dialog__title, .el-message-box__title, [class*='title'], h1, h2, h3, h4"
+    );
+    let modalTitle = titleEl ? cleanText(titleEl.textContent || "") : "";
+    if (!modalTitle) {
+      const contentEl = modalEl.querySelector(
+        ".ant-modal-confirm-content, .el-message-box__message, .ant-modal-body, .modal-body"
+      );
+      if (contentEl) modalTitle = cleanText(contentEl.textContent || "");
+    }
+    activeModalInfo = {
+      isOpen: true,
+      title: modalTitle || "确认弹窗",
+    };
+
+    // If modal is open, prioritize modal elements at the beginning
+    filtered.sort((a, b) => {
+      const aInModal = modalEl.contains(a.el);
+      const bInModal = modalEl.contains(b.el);
+      if (aInModal && !bInModal) return -1;
+      if (!aInModal && bInModal) return 1;
+      return 0;
+    });
+  }
+
   let counter = 1;
   const interactiveList: InteractiveElement[] = [];
 
@@ -430,6 +482,7 @@ export function extractInteractiveElements(): PageState {
       scrollY: window.scrollY,
     },
     elements: interactiveList,
+    activeModal: activeModalInfo,
     diagnostics,
   };
 }

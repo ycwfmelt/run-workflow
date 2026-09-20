@@ -55,7 +55,7 @@ export class TypeSafeService {
       is_input: el.isInput,
     }));
 
-    const state = {
+    const state: any = {
       task: {
         overall_goal: taskGoal,
         current_subgoal: currentSubgoal,
@@ -66,6 +66,13 @@ export class TypeSafeService {
       },
       interactive_elements: simplifiedElements,
     };
+
+    if (pageState.activeModal?.isOpen) {
+      state.page.active_modal = {
+        is_open: true,
+        title: pageState.activeModal.title,
+      };
+    }
 
     // Construct criteria for candidate elements
     const elementCriteria: Record<string, { what: string }> = {};
@@ -92,7 +99,7 @@ export class TypeSafeService {
       target_element: {
         type: "choice",
         instructions:
-          "Which interactive element in `interactive_elements` best accomplishes `task.current_subgoal`? Note: If multiple similar action buttons exist in table rows (such as multiple '处理' or '查看' buttons), select the first row's button by default unless a specific row or identifier is mentioned in the subgoal.",
+          "Which interactive element in `interactive_elements` best accomplishes `task.current_subgoal`? Note: If an active modal dialog is present (`page.active_modal`), prefer action buttons inside the dialog (e.g. '确认', '确定') to complete or dismiss the dialog. If multiple similar action buttons exist in table rows (such as multiple '处理' or '查看' buttons), select the first row's button by default unless a specific row or identifier is mentioned in the subgoal.",
         criteria: elementCriteria,
       },
       action_type: {

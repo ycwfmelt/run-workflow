@@ -113,6 +113,13 @@ export interface DiagnosticsInfo {
   timestamp: number;
 }
 
+export interface ActiveModalInfo {
+  isOpen: boolean;
+  title: string;
+  confirmButtonId?: string;
+  cancelButtonId?: string;
+}
+
 export interface PageState {
   url: string;
   title: string;
@@ -123,6 +130,7 @@ export interface PageState {
     scrollY: number;
   };
   elements: InteractiveElement[];
+  activeModal?: ActiveModalInfo;
   diagnostics?: DiagnosticsInfo;
 }
 

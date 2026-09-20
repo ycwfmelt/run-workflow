@@ -272,6 +272,30 @@ export class AgentLoop {
             continue;
           }
 
+          const isConditionalConfirmation = /若(?:弹出|出现|有)二次确认/.test(
+            currentStep.subgoal
+          );
+          if (isConditionalConfirmation && !pageState.activeModal?.isOpen) {
+            // Give 800ms for modal to animate in if needed
+            await sleep(800);
+            try {
+              const recheckState = await this.requestPageState(tabId);
+              if (!recheckState.activeModal?.isOpen) {
+                this.log(
+                  currentStep.subgoal,
+                  "success",
+                  1.0,
+                  "未检测到二次确认弹窗（操作已直接生效），无需二次确认。"
+                );
+                stepCompleted = true;
+                break;
+              }
+              pageState = recheckState;
+            } catch {
+              // Ignore recheck error
+            }
+          }
+
           this.log(
             currentStep.subgoal,
             "success",
@@ -317,6 +341,16 @@ export class AgentLoop {
             decision.targetElementId === "none_of_above" ||
             decision.confidence < this.config.confidenceThreshold
           ) {
+            if (isConditionalConfirmation) {
+              this.log(
+                currentStep.subgoal,
+                "success",
+                1.0,
+                "无需二次确认，直接进入下一环节。"
+              );
+              stepCompleted = true;
+              break;
+            }
             this.log(
               currentStep.subgoal,
               "warning",
@@ -412,6 +446,49 @@ export class AgentLoop {
       }
 
       if (!this.shouldStop) {
+        // Safety guard: check if the final action triggered an unconfirmed modal dialog
+        try {
+          await sleep(1000);
+          const finalState = await this.requestPageState(tabId);
+          if (finalState.activeModal?.isOpen) {
+            this.log(
+              "二次确认安全守卫",
+              "warning",
+              0.95,
+              `检测到页面存在未关闭的确认弹窗 ("${finalState.activeModal.title || "确认提示"}")，正在自动执行确认...`
+            );
+            const confirmDecision = await this.typesafeService.decideNextAction(
+              plan.goal,
+              "点击弹窗中的【确认】或【确定】按钮完成最终生效",
+              finalState,
+              finalState.elements
+            );
+            if (
+              confirmDecision.targetElementId &&
+              confirmDecision.targetElementId !== "none_of_above"
+            ) {
+              const confirmEl = finalState.elements.find(
+                (el) => el.id === confirmDecision.targetElementId
+              );
+              if (confirmEl) {
+                const desc = `[${confirmEl.id}] <${confirmEl.tag}> "${confirmEl.text}"`;
+                this.log(
+                  "二次确认",
+                  "success",
+                  confirmDecision.confidence,
+                  `Jev 选定确认按钮: 贝塞尔轨迹点击 -> ${desc}`,
+                  { id: confirmEl.id, description: desc },
+                  "click"
+                );
+                await this.cdp.clickElement(confirmEl.rect, this.config.antiBotMode);
+                await sleep(1500);
+              }
+            }
+          }
+        } catch (guardErr: any) {
+          console.warn("[JevPilot] Modal confirmation safety guard error:", guardErr);
+        }
+
         this.status = "completed";
         this.log("Task Finished", "success", 1.0, "全部阶段自动化任务已顺利完成！");
       }
