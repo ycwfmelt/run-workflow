@@ -19,6 +19,9 @@ const copyDebugBtn = document.getElementById("copyDebugBtn") as HTMLButtonElemen
 const diagnoseResult = document.getElementById("diagnoseResult") as HTMLElement;
 let currentDiagnosticsText = "";
 
+const workflowsCard = document.getElementById("workflowsCard") as HTMLElement;
+const workflowList = document.getElementById("workflowList") as HTMLElement;
+
 const typesafeApiKeyInput = document.getElementById("typesafeApiKey") as HTMLInputElement;
 const systemTwoProviderSelect = document.getElementById("systemTwoProvider") as HTMLSelectElement;
 const s2DetailsContainer = document.getElementById("s2DetailsContainer") as HTMLElement;
@@ -86,6 +89,57 @@ async function init() {
       }
     }
   });
+
+  // Load matching workflows for active tab
+  loadMatchingWorkflows();
+}
+
+async function loadMatchingWorkflows() {
+  try {
+    const res: any = await chrome.runtime.sendMessage({
+      type: "GET_MATCHING_WORKFLOWS",
+    });
+    if (res && res.workflows && res.workflows.length > 0) {
+      workflowsCard.style.display = "block";
+      workflowList.innerHTML = "";
+      res.workflows.forEach((wf: any) => {
+        const item = document.createElement("div");
+        item.style.background = "#0f172a";
+        item.style.border = "1px solid #334155";
+        item.style.borderRadius = "6px";
+        item.style.padding = "8px 10px";
+        item.style.display = "flex";
+        item.style.alignItems = "center";
+        item.style.justifyContent = "space-between";
+        item.style.gap = "8px";
+
+        item.innerHTML = `
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 600; font-size: 12px; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              ⚡ ${escapeHtml(wf.meta.name)}
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;">
+              ${escapeHtml(wf.meta.description)}
+            </div>
+          </div>
+          <button class="btn-primary run-wf-btn" data-id="${wf.id}" style="padding: 4px 8px; font-size: 11px; white-space: nowrap;">
+            ▶ 运行
+          </button>
+        `;
+
+        item.querySelector(".run-wf-btn")?.addEventListener("click", () => {
+          chrome.runtime.sendMessage({
+            type: "START_WORKFLOW",
+            workflowId: wf.id,
+          });
+        });
+
+        workflowList.appendChild(item);
+      });
+    } else {
+      workflowsCard.style.display = "none";
+    }
+  } catch {}
 }
 
 init();

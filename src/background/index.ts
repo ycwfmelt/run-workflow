@@ -1,6 +1,7 @@
 import { AgentLoop } from "./agent-loop.js";
 import { loadConfig } from "../shared/storage.js";
 import { MessagePayload } from "../shared/types.js";
+import { WorkflowRegistry } from "../workflows/workflow-registry.js";
 
 let agentLoop: AgentLoop | null = null;
 
@@ -54,6 +55,26 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
         // Start running task asynchronously
         agentLoop!.startTask(activeTab.id, message.prompt);
         return { success: true };
+      }
+      case "START_WORKFLOW": {
+        const [activeTab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        if (!activeTab || !activeTab.id) {
+          throw new Error("No active tab found");
+        }
+        agentLoop!.startWorkflow(activeTab.id, message.workflowId, message.args);
+        return { success: true };
+      }
+      case "GET_MATCHING_WORKFLOWS": {
+        const [activeTab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        const url = activeTab?.url || "";
+        const workflows = await WorkflowRegistry.getMatchingWorkflows(url);
+        return { success: true, workflows };
       }
       case "PAUSE_TASK": {
         await agentLoop!.pause();

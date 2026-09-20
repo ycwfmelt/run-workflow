@@ -9,6 +9,11 @@ import {
   MessagePayload,
 } from "../shared/types.js";
 import { sleep } from "./bezier-mouse.js";
+import { WorkflowRegistry } from "../workflows/workflow-registry.js";
+import {
+  WorkflowContext,
+  WorkflowFunction,
+} from "../workflows/types.js";
 
 export class AgentLoop {
   private config: AgentConfig;
@@ -193,6 +198,32 @@ export class AgentLoop {
         throw new Error(
           `无法在浏览器内部页面 (${url || "about:blank"}) 上执行自动化。请切换或打开目标业务网页（如您的管理后台、Google、GitHub等）后再试。`
         );
+      }
+
+      // 0.5. Check if prompt matches a registered dynamic workflow function
+      const matchingWorkflows = await WorkflowRegistry.getMatchingWorkflows(url);
+      const directMatch = matchingWorkflows.find(
+        (w) =>
+          prompt.includes(w.meta.name) ||
+          (w.id === "crm_batch_approval" &&
+            /(?:预售合同|待审批).*(?:批量|全部|所有)/.test(prompt)) ||
+          (w.id === "crm_batch_approval" &&
+            /处理列表里全部的待审批/.test(prompt))
+      );
+
+      if (directMatch && directMatch.fn) {
+        this.log(
+          "工作流直达",
+          "success",
+          1.0,
+          `✨ 命中预置动态工作流函数 [${directMatch.meta.name}] ("${directMatch.meta.description}")，直接启动原生 JS 状态机函数！`
+        );
+        this.cdp = new CDPClient(tabId);
+        await this.cdp.attach();
+        this.status = "running";
+        this.broadcastState();
+        await this.executeWorkflowFunction(tabId, directMatch.fn, {});
+        return;
       }
 
       // 1. System Two: Plan and extract entities
@@ -714,5 +745,133 @@ export class AgentLoop {
       this.status = "completed";
       this.log("Task Finished", "success", 1.0, "全部阶段自动化任务已顺利完成！");
     }
+  }
+
+  /**
+   * Start executing a registered dynamic workflow by ID
+   */
+  async startWorkflow(
+    tabId: number,
+    workflowId: string,
+    args?: any
+  ): Promise<void> {
+    const wf = await WorkflowRegistry.getWorkflowById(workflowId);
+    if (!wf || !wf.fn) {
+      throw new Error(`找不到 ID 为 "${workflowId}" 的工作流函数`);
+    }
+
+    this.tabId = tabId;
+    this.currentTask = wf.meta.description || wf.meta.name;
+    this.logs = [];
+    this.isPaused = false;
+    this.shouldStop = false;
+    this.status = "running";
+    this.broadcastState();
+
+    try {
+      this.cdp = new CDPClient(tabId);
+      await this.cdp.attach();
+      this.log(
+        "工作流启动",
+        "success",
+        1.0,
+        `🚀 开始执行工作流 [${wf.meta.name}]: "${wf.meta.description}"`
+      );
+      await this.executeWorkflowFunction(tabId, wf.fn, args);
+    } catch (err: any) {
+      this.status = "failed";
+      this.log("Execution Error", "error", 0.0, err.message || String(err));
+    } finally {
+      if (this.cdp) {
+        await this.cdp.detach();
+        this.cdp = null;
+      }
+      if (this.tabId) {
+        chrome.tabs
+          .sendMessage(this.tabId, { type: "CLEAR_HIGHLIGHTS" })
+          .catch(() => {});
+      }
+      this.broadcastState();
+    }
+  }
+
+  /**
+   * Execute a native TypeScript / JavaScript dynamic workflow function
+   * providing Claude Code dynamic workflow primitives:
+   * jev(), agent(), phase(), log(), getPage(), wait(), scroll()
+   */
+  async executeWorkflowFunction(
+    tabId: number,
+    fn: WorkflowFunction,
+    args?: Record<string, any>
+  ): Promise<any> {
+    const ctx: WorkflowContext = {
+      jev: async (subgoal, options) => {
+        if (this.shouldStop) throw new Error("Workflow stopped by user");
+        while (this.isPaused && !this.shouldStop) await sleep(500);
+
+        const pageState = await this.requestPageState(tabId);
+        this.log(subgoal, "success", 1.0, `Jev 正在决策: "${subgoal}"...`);
+
+        const decision = await this.typesafeService.decideNextAction(
+          this.currentTask || subgoal,
+          subgoal,
+          pageState,
+          pageState.elements
+        );
+
+        if (
+          decision.targetElementId &&
+          decision.targetElementId !== "none_of_above"
+        ) {
+          const el = pageState.elements.find(
+            (e) => e.id === decision.targetElementId
+          );
+          if (el) {
+            const desc = `[${el.id}] <${el.tag}> "${el.text || el.placeholder || ""}"`;
+            this.log(
+              subgoal,
+              "success",
+              decision.confidence,
+              `Jev 选定目标: 贝塞尔轨迹点击 -> ${desc}`,
+              { id: el.id, description: desc },
+              "click"
+            );
+            await this.cdp!.clickElement(el.rect, this.config.antiBotMode);
+            await sleep(1500);
+          }
+        }
+        return decision;
+      },
+      agent: async (prompt, options) => {
+        // Claude Code dynamic workflow alias for jev()
+        return ctx.jev(prompt, options);
+      },
+      phase: (title) => {
+        this.log(title, "success", 1.0, `[Phase 阶段] -> ${title}`);
+      },
+      log: (message) => {
+        this.log("Trace", "success", 1.0, message);
+      },
+      getPage: async () => {
+        return this.requestPageState(tabId);
+      },
+      scroll: async (deltaY) => {
+        if (this.cdp) await this.cdp.scroll(deltaY);
+      },
+      wait: async (ms) => {
+        await sleep(ms);
+      },
+      args,
+    };
+
+    const result = await fn(ctx);
+
+    if (!this.shouldStop) {
+      this.status = "completed";
+      this.log("Task Finished", "success", 1.0, "动态工作流函数执行完毕！");
+    }
+
+    return result;
   }
 }
