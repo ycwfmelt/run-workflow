@@ -8,8 +8,14 @@ export interface PlanStep {
 
 export interface TaskPlan {
   goal: string;
+  isBatch?: boolean;
+  batchTarget?: string;
   steps: PlanStep[];
   warning?: string;
+}
+
+export function isBatchTask(prompt: string): boolean {
+  return /(?:全部|所有|批量|逐个|每一个|每个|列表里全部|all|batch|every|each)/i.test(prompt);
 }
 
 export const PROVIDER_PRESETS: Record<
@@ -78,6 +84,9 @@ export class TaskPlanner {
       try {
         const plan = await this.callLLMPlanner(prompt);
         if (plan && plan.steps && plan.steps.length > 0) {
+          if (isBatchTask(prompt)) {
+            plan.isBatch = true;
+          }
           return plan;
         }
       } catch (err: any) {
@@ -96,6 +105,41 @@ export class TaskPlanner {
   private heuristicPlan(prompt: string, warning?: string): TaskPlan {
     const trimmed = prompt.trim();
     const steps: PlanStep[] = [];
+
+    // Check if task is a batch workflow (e.g. "处理列表里全部的待审批")
+    if (isBatchTask(trimmed)) {
+      const targetMatch = trimmed.match(
+        /(?:全部|所有|批量|逐个|每一个|每个)\s*(?:的)?\s*([^\s,，;；]+)/
+      );
+      const targetName = targetMatch ? targetMatch[1].trim() : "待审批项";
+
+      steps.push(
+        {
+          subgoal: `在列表中找到下一条【${targetName}】，点击对应的【处理】按钮`,
+          expectedOutcome: "打开详情或审批表单",
+        },
+        {
+          subgoal: "在详情页或处理弹窗中找到并点击【同意】或【通过】操作按钮",
+          expectedOutcome: "触发审批确认",
+        },
+        {
+          subgoal: `若弹出二次确认弹窗（如提示"确认通过吗"），找到并点击弹窗中的【确认】或【确定】按钮完成审批`,
+          expectedOutcome: "二次确认审批完成",
+        },
+        {
+          subgoal: "若停留在详情页，点击【返回】按钮返回工作事项列表以继续下一笔",
+          expectedOutcome: "返回列表页",
+        }
+      );
+
+      return {
+        goal: prompt,
+        isBatch: true,
+        batchTarget: targetName,
+        steps,
+        warning,
+      };
+    }
 
     // Check if prompt is a pure search task
     const isPureSearch = /^(?:搜索|search|查一下|查找|在.+搜索)\s*([^,，]+)$/i.test(trimmed);

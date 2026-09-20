@@ -219,278 +219,11 @@ export class AgentLoop {
       this.status = "running";
       this.broadcastState();
 
-      // 3. Execute Subgoals loop
-      for (let i = 0; i < plan.steps.length; i++) {
-        if (this.shouldStop) break;
-        this.currentStepIndex = i;
-        const currentStep = plan.steps[i];
-
-        this.log(
-          `目标 [${i + 1}/${plan.steps.length}]`,
-          "success",
-          1.0,
-          `开始执行: "${currentStep.subgoal}"`
-        );
-
-        let stepCompleted = false;
-        let attempts = 0;
-        const maxAttemptsPerStep = 4;
-
-        while (!stepCompleted && attempts < maxAttemptsPerStep && !this.shouldStop) {
-          attempts++;
-
-          // Handle pause
-          while (this.isPaused && !this.shouldStop) {
-            await sleep(500);
-          }
-          if (this.shouldStop) break;
-
-          // Extract current DOM state
-          let pageState: PageState;
-          try {
-            pageState = await this.requestPageState(tabId);
-          } catch (e: any) {
-            this.log(
-              currentStep.subgoal,
-              "warning",
-              0,
-              `无法读取页面元素 (${e.message})，重试 (${attempts}/${maxAttemptsPerStep})...`
-            );
-            await sleep(1200);
-            continue;
-          }
-
-          if (!pageState.elements || pageState.elements.length === 0) {
-            this.log(
-              currentStep.subgoal,
-              "warning",
-              0,
-              `页面当前视口未扫描到可视交互元素，正在滚动重试 (${attempts}/${maxAttemptsPerStep})...`
-            );
-            await this.cdp.scroll(300);
-            await sleep(1200);
-            continue;
-          }
-
-          const isConditionalConfirmation = /若(?:弹出|出现|有)二次确认/.test(
-            currentStep.subgoal
-          );
-          if (isConditionalConfirmation && !pageState.activeModal?.isOpen) {
-            // Give 800ms for modal to animate in if needed
-            await sleep(800);
-            try {
-              const recheckState = await this.requestPageState(tabId);
-              if (!recheckState.activeModal?.isOpen) {
-                this.log(
-                  currentStep.subgoal,
-                  "success",
-                  1.0,
-                  "未检测到二次确认弹窗（操作已直接生效），无需二次确认。"
-                );
-                stepCompleted = true;
-                break;
-              }
-              pageState = recheckState;
-            } catch {
-              // Ignore recheck error
-            }
-          }
-
-          this.log(
-            currentStep.subgoal,
-            "success",
-            1.0,
-            `已捕获 ${pageState.elements.length} 个可视元素，调用 Jev System One 进行决策...`
-          );
-
-          // Consult Jev System One
-          let decision: JevDecision;
-          try {
-            decision = await this.typesafeService.decideNextAction(
-              plan.goal,
-              currentStep.subgoal,
-              pageState,
-              pageState.elements
-            );
-          } catch (apiErr: any) {
-            this.log(
-              currentStep.subgoal,
-              "error",
-              0,
-              `Jev API 请求失败: ${apiErr.message}`
-            );
-            throw apiErr;
-          }
-
-          // Check if blocked by CAPTCHA
-          if (decision.isBlockedByCaptcha) {
-            this.status = "waiting_user";
-            this.log(
-              currentStep.subgoal,
-              "warning",
-              decision.captchaProbability,
-              "检测到滑块/验证码/安全阻断。自动化已自动暂停，请手动完成后在侧边栏点击【▶ 继续】"
-            );
-            this.isPaused = true;
-            this.broadcastState();
-            continue;
-          }
-
-          // Confidence-gated routing
-          if (
-            decision.targetElementId === "none_of_above" ||
-            decision.confidence < this.config.confidenceThreshold
-          ) {
-            if (isConditionalConfirmation) {
-              this.log(
-                currentStep.subgoal,
-                "success",
-                1.0,
-                "无需二次确认，直接进入下一环节。"
-              );
-              stepCompleted = true;
-              break;
-            }
-            this.log(
-              currentStep.subgoal,
-              "warning",
-              decision.confidence,
-              `Jev 置信度偏低 (${(decision.confidence * 100).toFixed(0)}%) 或目标不在当前屏，正在平滑向下滚动查找...`
-            );
-            await this.cdp.scroll(350);
-            await sleep(1200);
-            continue;
-          }
-
-          // Found target element with high confidence!
-          const targetElement = pageState.elements.find(
-            (el) => el.id === decision.targetElementId
-          );
-
-          if (!targetElement) {
-            this.log(
-              currentStep.subgoal,
-              "warning",
-              decision.confidence,
-              `找不到元素 ID ${decision.targetElementId}，滚动重试...`
-            );
-            await this.cdp.scroll(250);
-            await sleep(800);
-            continue;
-          }
-
-          // Visual highlight on page
-          chrome.tabs.sendMessage(tabId, {
-            type: "HIGHLIGHT_ELEMENT",
-            elementId: targetElement.id,
-          }).catch(() => {});
-
-          const elemDesc = `[${targetElement.id}] <${targetElement.tag}> "${targetElement.text || targetElement.placeholder || targetElement.ariaLabel || ""}"`;
-
-          // Execute action via CDP
-          if (decision.actionType === "type" || (targetElement.isInput && currentStep.typeText)) {
-            const textToType = currentStep.typeText || "";
-            this.log(
-              currentStep.subgoal,
-              "success",
-              decision.confidence,
-              `Jev 选定输入框: 聚焦并输入 "${textToType}" -> ${elemDesc}`,
-              { id: targetElement.id, description: elemDesc },
-              "type"
-            );
-
-            await this.cdp.clickElement(targetElement.rect, this.config.antiBotMode);
-            if (textToType) {
-              await sleep(150);
-              await this.cdp.typeText(textToType, this.config.antiBotMode);
-              await sleep(200);
-
-              if (targetElement.role === "searchbox" || targetElement.tag === "input") {
-                await this.cdp.pressKey("Enter");
-              }
-            }
-            stepCompleted = true;
-          } else if (decision.actionType === "click" || !targetElement.isInput) {
-            this.log(
-              currentStep.subgoal,
-              "success",
-              decision.confidence,
-              `Jev 选定目标: 贝塞尔轨迹点击 -> ${elemDesc}`,
-              { id: targetElement.id, description: elemDesc },
-              "click"
-            );
-
-            await this.cdp.clickElement(targetElement.rect, this.config.antiBotMode);
-            stepCompleted = true;
-          } else if (decision.actionType === "finish") {
-            this.log(
-              currentStep.subgoal,
-              "success",
-              decision.confidence,
-              `Jev 判断当前目标已达成，进入下一阶段。`
-            );
-            stepCompleted = true;
-            break;
-          }
-
-          // Settle delay after interaction
-          await sleep(1500);
-        }
-
-        // Check if step succeeded
-        if (!stepCompleted && !this.shouldStop) {
-          throw new Error(
-            `阶段目标 [${i + 1}] "${currentStep.subgoal}" 尝试 ${maxAttemptsPerStep} 次仍未找到匹配元素，任务终止。`
-          );
-        }
-      }
-
-      if (!this.shouldStop) {
-        // Safety guard: check if the final action triggered an unconfirmed modal dialog
-        try {
-          await sleep(1000);
-          const finalState = await this.requestPageState(tabId);
-          if (finalState.activeModal?.isOpen) {
-            this.log(
-              "二次确认安全守卫",
-              "warning",
-              0.95,
-              `检测到页面存在未关闭的确认弹窗 ("${finalState.activeModal.title || "确认提示"}")，正在自动执行确认...`
-            );
-            const confirmDecision = await this.typesafeService.decideNextAction(
-              plan.goal,
-              "点击弹窗中的【确认】或【确定】按钮完成最终生效",
-              finalState,
-              finalState.elements
-            );
-            if (
-              confirmDecision.targetElementId &&
-              confirmDecision.targetElementId !== "none_of_above"
-            ) {
-              const confirmEl = finalState.elements.find(
-                (el) => el.id === confirmDecision.targetElementId
-              );
-              if (confirmEl) {
-                const desc = `[${confirmEl.id}] <${confirmEl.tag}> "${confirmEl.text}"`;
-                this.log(
-                  "二次确认",
-                  "success",
-                  confirmDecision.confidence,
-                  `Jev 选定确认按钮: 贝塞尔轨迹点击 -> ${desc}`,
-                  { id: confirmEl.id, description: desc },
-                  "click"
-                );
-                await this.cdp.clickElement(confirmEl.rect, this.config.antiBotMode);
-                await sleep(1500);
-              }
-            }
-          }
-        } catch (guardErr: any) {
-          console.warn("[JevPilot] Modal confirmation safety guard error:", guardErr);
-        }
-
-        this.status = "completed";
-        this.log("Task Finished", "success", 1.0, "全部阶段自动化任务已顺利完成！");
+      // 3. Execute Workflow: Dynamic Batch State Machine vs Sequential Plan
+      if (plan.isBatch) {
+        await this.runDynamicBatchWorkflow(tabId, plan);
+      } else {
+        await this.runSequentialWorkflow(tabId, plan);
       }
     } catch (err: any) {
       this.status = "failed";
@@ -504,6 +237,482 @@ export class AgentLoop {
         chrome.tabs.sendMessage(this.tabId, { type: "CLEAR_HIGHLIGHTS" }).catch(() => {});
       }
       this.broadcastState();
+    }
+  }
+
+  /**
+   * Dynamic State Machine for Batch Enterprise Workflows (like Claude Code / ReAct)
+   */
+  private async runDynamicBatchWorkflow(
+    tabId: number,
+    plan: TaskPlan
+  ): Promise<void> {
+    let processedCount = 0;
+    const maxBatchItems = 50;
+    let consecutiveIdleTurns = 0;
+
+    this.log(
+      "动态批处理工作流",
+      "success",
+      1.0,
+      `已启动动态批量状态机 (目标: ${plan.goal})。正在持续检索待处理列表...`
+    );
+
+    while (processedCount < maxBatchItems && !this.shouldStop) {
+      this.currentStepIndex = processedCount;
+      this.broadcastState();
+
+      // Pause check
+      while (this.isPaused && !this.shouldStop) {
+        await sleep(500);
+      }
+      if (this.shouldStop) break;
+
+      // Extract current DOM state
+      let pageState: PageState;
+      try {
+        pageState = await this.requestPageState(tabId);
+      } catch (e: any) {
+        this.log("DOM 状态检测", "warning", 0, `获取页面失败 (${e.message})，重试中...`);
+        await sleep(1500);
+        continue;
+      }
+
+      const currentUrl = pageState.url || "";
+
+      // ----------------------------------------------------
+      // STATE A: Active Modal Dialog (二次确认弹窗)
+      // ----------------------------------------------------
+      if (pageState.activeModal?.isOpen) {
+        this.log(
+          `批处理 [第 ${processedCount + 1} 笔]`,
+          "warning",
+          0.95,
+          `检测到前台确认弹窗 ("${pageState.activeModal.title}")，正在点击【确认】...`
+        );
+        const decision = await this.typesafeService.decideNextAction(
+          plan.goal,
+          "点击弹窗中的【确认】或【确定】按钮完成最终生效",
+          pageState,
+          pageState.elements
+        );
+        if (decision.targetElementId && decision.targetElementId !== "none_of_above") {
+          const el = pageState.elements.find((e) => e.id === decision.targetElementId);
+          if (el) {
+            await this.cdp!.clickElement(el.rect, this.config.antiBotMode);
+            await sleep(1500);
+            consecutiveIdleTurns = 0;
+            continue;
+          }
+        }
+      }
+
+      // ----------------------------------------------------
+      // STATE B: Detail / Approval Form View (详情审批页)
+      // ----------------------------------------------------
+      const isDetailPage =
+        /DETAIL|APPLY|DETAIL\/\d+/i.test(currentUrl) ||
+        pageState.elements.some((e) => ["打回", "通过", "同意"].includes(e.text));
+
+      if (isDetailPage) {
+        // Check if there is an actionable [通过] or [同意] button
+        const approveBtn = pageState.elements.find((e) =>
+          ["通过", "同意", "审批通过"].includes(e.text)
+        );
+
+        if (approveBtn && approveBtn.isClickable) {
+          this.log(
+            `批处理 [第 ${processedCount + 1} 笔]`,
+            "success",
+            1.0,
+            `处于详情页: 贝塞尔轨迹点击【${approveBtn.text}】执行审批...`
+          );
+          await this.cdp!.clickElement(approveBtn.rect, this.config.antiBotMode);
+          await sleep(1500);
+          consecutiveIdleTurns = 0;
+          continue;
+        }
+
+        // Check if there is a [返回] button to return to list
+        const returnBtn = pageState.elements.find(
+          (e) => e.text === "返回" || e.ariaLabel === "返回"
+        );
+
+        if (returnBtn) {
+          processedCount++;
+          this.log(
+            `批处理 [第 ${processedCount} 笔完成]`,
+            "success",
+            1.0,
+            `本笔审批已提交！点击【返回】回到工作列表，准备下一笔 (已完成 ${processedCount} 笔)...`
+          );
+          await this.cdp!.clickElement(returnBtn.rect, this.config.antiBotMode);
+          await sleep(2000);
+          consecutiveIdleTurns = 0;
+          continue;
+        }
+      }
+
+      // ----------------------------------------------------
+      // STATE C: List View (工作事项列表页)
+      // ----------------------------------------------------
+      // In list view: look for [处理] or [办理] buttons
+      const processButtons = pageState.elements.filter(
+        (e) =>
+          e.text.startsWith("处理") ||
+          e.text === "处理" ||
+          e.text.startsWith("办理") ||
+          e.text === "办理"
+      );
+
+      if (processButtons.length > 0) {
+        const nextTarget = processButtons[0];
+        this.log(
+          `批处理 [第 ${processedCount + 1} 笔]`,
+          "success",
+          1.0,
+          `列表中发现待审批项: 贝塞尔点击【${nextTarget.text}】进入详情...`
+        );
+        await this.cdp!.clickElement(nextTarget.rect, this.config.antiBotMode);
+        consecutiveIdleTurns = 0;
+        await sleep(2000);
+        continue;
+      }
+
+      // If no [处理] buttons visible on current viewport, try scrolling down in case table is long
+      if (consecutiveIdleTurns === 0) {
+        consecutiveIdleTurns++;
+        this.log(
+          "列表扫描",
+          "warning",
+          0.6,
+          "当前视口未见待处理按钮，尝试向下滚动扫描列表..."
+        );
+        await this.cdp!.scroll(350);
+        await sleep(1200);
+        continue;
+      }
+
+      // Check for Pagination [下一页] button
+      const nextPageBtn = pageState.elements.find(
+        (e) =>
+          (e.text.includes("下一页") || e.ariaLabel?.includes("Next Page")) &&
+          !e.selector.includes("disabled")
+      );
+
+      if (nextPageBtn && nextPageBtn.isClickable) {
+        this.log("翻页继续", "success", 0.9, "当前页待审批项已处理完毕，点击【下一页】翻页...");
+        await this.cdp!.clickElement(nextPageBtn.rect, this.config.antiBotMode);
+        consecutiveIdleTurns = 0;
+        await sleep(2000);
+        continue;
+      }
+
+      // No more items and no next page!
+      consecutiveIdleTurns++;
+      if (consecutiveIdleTurns < 3) {
+        await sleep(1200);
+        continue;
+      }
+
+      // Complete!
+      break;
+    }
+
+    if (!this.shouldStop) {
+      this.status = "completed";
+      this.log(
+        "批量任务圆满完成",
+        "success",
+        1.0,
+        `🎉 列表中已无更多待审批事项！本次批量自动化共成功审批处理了 ${processedCount} 笔业务。`
+      );
+    }
+  }
+
+  /**
+   * Sequential workflow for single-pass tasks
+   */
+  private async runSequentialWorkflow(
+    tabId: number,
+    plan: TaskPlan
+  ): Promise<void> {
+    for (let i = 0; i < plan.steps.length; i++) {
+      if (this.shouldStop) break;
+      this.currentStepIndex = i;
+      const currentStep = plan.steps[i];
+
+      this.log(
+        `目标 [${i + 1}/${plan.steps.length}]`,
+        "success",
+        1.0,
+        `开始执行: "${currentStep.subgoal}"`
+      );
+
+      let stepCompleted = false;
+      let attempts = 0;
+      const maxAttemptsPerStep = 4;
+
+      while (!stepCompleted && attempts < maxAttemptsPerStep && !this.shouldStop) {
+        attempts++;
+
+        // Handle pause
+        while (this.isPaused && !this.shouldStop) {
+          await sleep(500);
+        }
+        if (this.shouldStop) break;
+
+        // Extract current DOM state
+        let pageState: PageState;
+        try {
+          pageState = await this.requestPageState(tabId);
+        } catch (e: any) {
+          this.log(
+            currentStep.subgoal,
+            "warning",
+            0,
+            `无法读取页面元素 (${e.message})，重试 (${attempts}/${maxAttemptsPerStep})...`
+          );
+          await sleep(1200);
+          continue;
+        }
+
+        if (!pageState.elements || pageState.elements.length === 0) {
+          this.log(
+            currentStep.subgoal,
+            "warning",
+            0,
+            `页面当前视口未扫描到可视交互元素，正在滚动重试 (${attempts}/${maxAttemptsPerStep})...`
+          );
+          await this.cdp!.scroll(300);
+          await sleep(1200);
+          continue;
+        }
+
+        const isConditionalConfirmation = /若(?:弹出|出现|有)二次确认/.test(
+          currentStep.subgoal
+        );
+        if (isConditionalConfirmation && !pageState.activeModal?.isOpen) {
+          // Give 800ms for modal to animate in if needed
+          await sleep(800);
+          try {
+            const recheckState = await this.requestPageState(tabId);
+            if (!recheckState.activeModal?.isOpen) {
+              this.log(
+                currentStep.subgoal,
+                "success",
+                1.0,
+                "未检测到二次确认弹窗（操作已直接生效），无需二次确认。"
+              );
+              stepCompleted = true;
+              break;
+            }
+            pageState = recheckState;
+          } catch {
+            // Ignore recheck error
+          }
+        }
+
+        this.log(
+          currentStep.subgoal,
+          "success",
+          1.0,
+          `已捕获 ${pageState.elements.length} 个可视元素，调用 Jev System One 进行决策...`
+        );
+
+        // Consult Jev System One
+        let decision: JevDecision;
+        try {
+          decision = await this.typesafeService.decideNextAction(
+            plan.goal,
+            currentStep.subgoal,
+            pageState,
+            pageState.elements
+          );
+        } catch (apiErr: any) {
+          this.log(
+            currentStep.subgoal,
+            "error",
+            0,
+            `Jev API 请求失败: ${apiErr.message}`
+          );
+          throw apiErr;
+        }
+
+        // Check if blocked by CAPTCHA
+        if (decision.isBlockedByCaptcha) {
+          this.status = "waiting_user";
+          this.log(
+            currentStep.subgoal,
+            "warning",
+            decision.captchaProbability,
+            "检测到滑块/验证码/安全阻断。自动化已自动暂停，请手动完成后在侧边栏点击【▶ 继续】"
+          );
+          this.isPaused = true;
+          this.broadcastState();
+          continue;
+        }
+
+        // Confidence-gated routing
+        if (
+          decision.targetElementId === "none_of_above" ||
+          decision.confidence < this.config.confidenceThreshold
+        ) {
+          if (isConditionalConfirmation) {
+            this.log(
+              currentStep.subgoal,
+              "success",
+              1.0,
+              "无需二次确认，直接进入下一环节。"
+            );
+            stepCompleted = true;
+            break;
+          }
+          this.log(
+            currentStep.subgoal,
+            "warning",
+            decision.confidence,
+            `Jev 置信度偏低 (${(decision.confidence * 100).toFixed(0)}%) 或目标不在当前屏，正在平滑向下滚动查找...`
+          );
+          await this.cdp!.scroll(350);
+          await sleep(1200);
+          continue;
+        }
+
+        // Found target element with high confidence!
+        const targetElement = pageState.elements.find(
+          (el) => el.id === decision.targetElementId
+        );
+
+        if (!targetElement) {
+          this.log(
+            currentStep.subgoal,
+            "warning",
+            decision.confidence,
+            `找不到元素 ID ${decision.targetElementId}，滚动重试...`
+          );
+          await this.cdp!.scroll(250);
+          await sleep(800);
+          continue;
+        }
+
+        // Visual highlight on page
+        chrome.tabs
+          .sendMessage(tabId, {
+            type: "HIGHLIGHT_ELEMENT",
+            elementId: targetElement.id,
+          })
+          .catch(() => {});
+
+        const elemDesc = `[${targetElement.id}] <${targetElement.tag}> "${targetElement.text || targetElement.placeholder || targetElement.ariaLabel || ""}"`;
+
+        // Execute action via CDP
+        if (
+          decision.actionType === "type" ||
+          (targetElement.isInput && currentStep.typeText)
+        ) {
+          const textToType = currentStep.typeText || "";
+          this.log(
+            currentStep.subgoal,
+            "success",
+            decision.confidence,
+            `Jev 选定输入框: 聚焦并输入 "${textToType}" -> ${elemDesc}`,
+            { id: targetElement.id, description: elemDesc },
+            "type"
+          );
+
+          await this.cdp!.clickElement(targetElement.rect, this.config.antiBotMode);
+          if (textToType) {
+            await sleep(150);
+            await this.cdp!.typeText(textToType, this.config.antiBotMode);
+            await sleep(200);
+
+            if (targetElement.role === "searchbox" || targetElement.tag === "input") {
+              await this.cdp!.pressKey("Enter");
+            }
+          }
+          stepCompleted = true;
+        } else if (decision.actionType === "click" || !targetElement.isInput) {
+          this.log(
+            currentStep.subgoal,
+            "success",
+            decision.confidence,
+            `Jev 选定目标: 贝塞尔轨迹点击 -> ${elemDesc}`,
+            { id: targetElement.id, description: elemDesc },
+            "click"
+          );
+
+          await this.cdp!.clickElement(targetElement.rect, this.config.antiBotMode);
+          stepCompleted = true;
+        } else if (decision.actionType === "finish") {
+          this.log(
+            currentStep.subgoal,
+            "success",
+            decision.confidence,
+            `Jev 判断当前目标已达成，进入下一阶段。`
+          );
+          stepCompleted = true;
+          break;
+        }
+
+        // Settle delay after interaction
+        await sleep(1500);
+      }
+
+      // Check if step succeeded
+      if (!stepCompleted && !this.shouldStop) {
+        throw new Error(
+          `阶段目标 [${i + 1}] "${currentStep.subgoal}" 尝试 ${maxAttemptsPerStep} 次仍未找到匹配元素，任务终止。`
+        );
+      }
+    }
+
+    if (!this.shouldStop) {
+      // Safety guard: check if the final action triggered an unconfirmed modal dialog
+      try {
+        await sleep(1000);
+        const finalState = await this.requestPageState(tabId);
+        if (finalState.activeModal?.isOpen) {
+          this.log(
+            "二次确认安全守卫",
+            "warning",
+            0.95,
+            `检测到页面存在未关闭的确认弹窗 ("${finalState.activeModal.title || "确认提示"}")，正在自动执行确认...`
+          );
+          const confirmDecision = await this.typesafeService.decideNextAction(
+            plan.goal,
+            "点击弹窗中的【确认】或【确定】按钮完成最终生效",
+            finalState,
+            finalState.elements
+          );
+          if (
+            confirmDecision.targetElementId &&
+            confirmDecision.targetElementId !== "none_of_above"
+          ) {
+            const confirmEl = finalState.elements.find(
+              (el) => el.id === confirmDecision.targetElementId
+            );
+            if (confirmEl) {
+              const desc = `[${confirmEl.id}] <${confirmEl.tag}> "${confirmEl.text}"`;
+              this.log(
+                "二次确认",
+                "success",
+                confirmDecision.confidence,
+                `Jev 选定确认按钮: 贝塞尔轨迹点击 -> ${desc}`,
+                { id: confirmEl.id, description: desc },
+                "click"
+              );
+              await this.cdp!.clickElement(confirmEl.rect, this.config.antiBotMode);
+              await sleep(1500);
+            }
+          }
+        }
+      } catch (guardErr: any) {
+        console.warn("[JevPilot] Modal confirmation safety guard error:", guardErr);
+      }
+
+      this.status = "completed";
+      this.log("Task Finished", "success", 1.0, "全部阶段自动化任务已顺利完成！");
     }
   }
 }
