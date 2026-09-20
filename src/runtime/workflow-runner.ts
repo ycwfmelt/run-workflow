@@ -101,56 +101,94 @@ export class WorkflowRunner {
           await sleep(pollInterval);
         }
 
-        // 2. Self-Healing Intervention: If guard fails, let Jev attempt recovery / rollback
+        // 2. Self-Healing Intervention: Let Jev decide remedy based on live DOM; explicit unhealable exit
         if (autoHeal) {
           const phaseName = activePhaseTitle || "当前步骤";
           hooks.onLog?.(
             "Jev自愈",
             "warning",
-            `⚠️ [Guard 未达成] Phase [${phaseName}] 未在 ${timeoutMs}ms 内检测到达成状态，Jev 介入自愈 (Self-Healing)...`
+            `⚠️ [守卫未达成] Phase [${phaseName}] 出现状态偏离，Jev 介入决策自愈策略...`
           );
 
-          // A. Rollback check: Did URL drift away from phase checkpoint?
-          const cp = checkpoints[checkpoints.length - 1];
           const curPage = await fetchPage().catch(() => null);
-          if (cp && curPage && cp.url && curPage.url !== cp.url) {
-            hooks.onLog?.(
-              "状态回滚",
-              "warning",
-              `检测到页面路由偏离预期，正在执行回滚至 Checkpoint: ${cp.url}`
+          if (curPage) {
+            const healGoal = activePhaseTitle ? `达成阶段目标: "${activePhaseTitle}"` : "排查并推进当前步骤";
+            const decision = await typesafeService.decideNextAction(
+              healGoal,
+              `守卫条件 [${typeof spec === "string" ? spec : JSON.stringify(spec)}] 未满足。请分析当前页面阻碍（如弹窗、遮罩或元素变异）并给出自愈动作。`,
+              curPage,
+              curPage.elements
             );
-            await ctx.rollback(cp);
-          }
 
-          // B. Jev adaptive corrective action
-          const healGoal = activePhaseTitle ? `完成阶段目标: ${activePhaseTitle}` : "完成当前步骤";
-          await ctx.jev(healGoal);
+            // Exit A: Jev semantic goal reached
+            if (decision.isGoalReached || decision.actionType === "finish") {
+              const totalElapsed = Date.now() - startTime;
+              hooks.onLog?.("自愈成功", "success", `🎉 Jev 判定当前阶段目标已就绪，恢复工作流执行！`);
+              return {
+                isGoalReached: true,
+                confidence: decision.confidence || 1.0,
+                isHealed: true,
+                elapsedMs: totalElapsed,
+                reason: decision.reasoningNote || "Jev semantic goal reached",
+              };
+            }
 
-          // C. Re-verify guard
-          await sleep(800);
-          const healStartTime = Date.now();
-          while (Date.now() - healStartTime <= 2000) {
-            try {
-              const healedPage = await fetchPage();
-              const healedResult = evaluateCondition(healedPage, spec);
-              if (healedResult.matched) {
-                const totalElapsed = Date.now() - startTime;
-                hooks.onLog?.(
-                  "自愈成功",
-                  "success",
-                  `🎉 Jev 已成功自愈当前 Phase [${phaseName}]，恢复后续工作流执行！`
-                );
-                return {
-                  isGoalReached: true,
-                  confidence: 1.0,
-                  isHealed: true,
-                  elapsedMs: totalElapsed,
-                  reason: `Self-healed by Jev: ${healedResult.reason}`,
-                };
+            // Path B: Jev identified concrete corrective action (e.g. dismissing an obstacle modal)
+            if (decision.targetElementId && decision.targetElementId !== "none_of_above") {
+              const targetEl = curPage.elements.find((e) => e.id === decision.targetElementId);
+              if (targetEl) {
+                const desc = `[${targetEl.id}] <${targetEl.tag}> "${targetEl.text || targetEl.placeholder || ""}"`;
+                hooks.onLog?.("Jev自愈动作", "info", `🤖 Jev 决定执行自愈操作 -> ${desc}`);
+                if (decision.actionType === "type" && targetEl.isInput) {
+                  await cdp.clickElement(targetEl.rect, config.antiBotMode);
+                  await sleep(150);
+                  await cdp.typeText(activePhaseTitle, config.antiBotMode);
+                } else {
+                  await cdp.clickElement(targetEl.rect, config.antiBotMode);
+                }
+                await sleep(1200);
+
+                // Re-verify guard
+                const healedPage = await fetchPage().catch(() => null);
+                if (healedPage) {
+                  const healedResult = evaluateCondition(healedPage, spec);
+                  if (healedResult.matched) {
+                    const totalElapsed = Date.now() - startTime;
+                    hooks.onLog?.(
+                      "自愈成功",
+                      "success",
+                      `🎉 Jev 已成功消除阻碍并满足守卫条件 [${healedResult.reason}]，恢复后续执行！`
+                    );
+                    return {
+                      isGoalReached: true,
+                      confidence: 1.0,
+                      isHealed: true,
+                      elapsedMs: totalElapsed,
+                      reason: `Self-healed by Jev: ${healedResult.reason}`,
+                    };
+                  }
+                }
               }
-            } catch {}
-            await sleep(pollInterval);
+            }
           }
+
+          // Exit C: Explicit Unhealable Exit!
+          // Jev could not resolve the failure or no actionable remediation was found.
+          const totalElapsed = Date.now() - startTime;
+          const failMsg = `Phase [${phaseName}] 守卫条件未能满足 [${typeof spec === "string" ? spec : JSON.stringify(spec)}]，且 Jev 自愈未发现可恢复路径。`;
+          hooks.onLog?.("无法自愈", "error", `❌ ${failMsg}`);
+
+          if (options?.strict) {
+            throw new Error(`[Workflow Unhealable] ${failMsg}`);
+          }
+
+          return {
+            isGoalReached: false,
+            confidence: 0.0,
+            isHealed: false,
+            elapsedMs: totalElapsed,
+            reason: "Unhealable: Jev could not resolve state divergence",
+          };
         }
 
         const elapsed = Date.now() - startTime;
