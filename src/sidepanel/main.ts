@@ -26,7 +26,28 @@ const openOptionsBtn = document.getElementById("openOptionsBtn") as HTMLButtonEl
 const bannerSettingsBtn = document.getElementById("bannerSettingsBtn") as HTMLButtonElement;
 const apiKeyBanner = document.getElementById("apiKeyBanner") as HTMLElement;
 
+const saveWorkflowBanner = document.getElementById("saveWorkflowBanner") as HTMLElement;
+const saveWorkflowDesc = document.getElementById("saveWorkflowDesc") as HTMLElement;
+const saveWorkflowBtn = document.getElementById("saveWorkflowBtn") as HTMLButtonElement;
+
 let cachedApiKey = "";
+
+saveWorkflowBtn?.addEventListener("click", () => {
+  saveWorkflowBtn.textContent = "正在保存...";
+  chrome.runtime.sendMessage({ type: "SAVE_LAST_WORKFLOW" }, (res) => {
+    if (res && res.success) {
+      saveWorkflowBtn.textContent = "已保存 ✓";
+      loadMatchingWorkflows();
+      setTimeout(() => {
+        saveWorkflowBanner.style.display = "none";
+        saveWorkflowBtn.textContent = "💾 保存为本地 Recipe";
+      }, 2000);
+    } else {
+      alert(`保存失败: ${res?.message || "未知错误"}`);
+      saveWorkflowBtn.textContent = "💾 保存为本地 Recipe";
+    }
+  });
+});
 
 function openOptions() {
   if (chrome.runtime.openOptionsPage) {
@@ -42,7 +63,7 @@ bannerSettingsBtn?.addEventListener("click", openOptions);
 // Reactively listen for configuration changes saved from the Options page
 chrome.storage.onChanged?.addListener((changes, area) => {
   if (area === "local" && changes.jev_config) {
-    const newConfig = changes.jev_config.newValue;
+    const newConfig = changes.jev_config.newValue as any;
     if (newConfig) {
       cachedApiKey = (newConfig.typesafeApiKey || "").trim();
       apiKeyBanner.style.display = cachedApiKey ? "none" : "flex";
@@ -132,6 +153,7 @@ startBtn.addEventListener("click", () => {
     openOptions();
     return;
   }
+  saveWorkflowBanner.style.display = "none";
   chrome.runtime.sendMessage({ type: "START_TASK", prompt }, (res) => {
     if (res && res.error) {
       alert(`启动失败: ${res.error}`);
@@ -278,6 +300,14 @@ chrome.runtime.onMessage.addListener((message: MessagePayload) => {
     }
     if (message.recentLogs) {
       renderLogs(message.recentLogs);
+    }
+    if (message.canSaveWorkflow) {
+      saveWorkflowBanner.style.display = "block";
+      if (message.workflowName) {
+        saveWorkflowDesc.textContent = `可保存为快捷 Recipe: "${message.workflowName}"`;
+      }
+    } else if (message.status === "running" || message.status === "planning") {
+      saveWorkflowBanner.style.display = "none";
     }
   }
 });

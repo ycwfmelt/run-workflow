@@ -42,7 +42,7 @@ export class CDPClient {
     });
   }
 
-  private async sendCommand<T = any>(method: string, params: object = {}): Promise<T> {
+  private async sendCommand<T = any>(method: string, params: Record<string, any> = {}): Promise<T> {
     if (!this.attached) {
       await this.attach();
     }

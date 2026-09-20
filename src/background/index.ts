@@ -88,6 +88,10 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
         await agentLoop!.stop();
         return { success: true };
       }
+      case "SAVE_LAST_WORKFLOW": {
+        const result = await agentLoop!.saveLastExecutedWorkflow();
+        return result;
+      }
       case "GET_STATE": {
         return {
           status: agentLoop!.getStatus(),

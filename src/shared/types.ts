@@ -147,6 +147,7 @@ export type MessagePayload =
   | { type: "PAUSE_TASK" }
   | { type: "RESUME_TASK" }
   | { type: "STOP_TASK" }
+  | { type: "SAVE_LAST_WORKFLOW" }
   | {
       type: "AGENT_STATE_UPDATE";
       status: TaskStatus;
@@ -154,4 +155,6 @@ export type MessagePayload =
       currentStep?: number;
       recentLogs: StepLog[];
       currentAction?: AgentAction;
+      canSaveWorkflow?: boolean;
+      workflowName?: string;
     };

@@ -19,7 +19,7 @@ export async function loadConfig(): Promise<AgentConfig> {
       return;
     }
     chrome.storage.local.get(["jev_config"], (result) => {
-      const stored = result.jev_config || {};
+      const stored = (result.jev_config || {}) as Partial<AgentConfig>;
       resolve({
         ...DEFAULT_CONFIG,
         ...stored,

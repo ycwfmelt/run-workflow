@@ -14,7 +14,10 @@
   "license": "ISC",
   "packageManager": "pnpm@10.33.2",
   "dependencies": {
-    "@typesafe-ai/sdk": "^0.6.0"
+    "@ai-sdk/openai": "^4.0.71",
+    "@typesafe-ai/sdk": "^0.6.0",
+    "ai": "^7.0.107",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/chrome": "^0.3.0",

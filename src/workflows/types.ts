@@ -11,7 +11,7 @@ export interface WorkflowMeta {
   name: string;
   description: string;
   matchUrl?: string;
-  phases?: WorkflowMetaPhase[];
+  phases?: (WorkflowMetaPhase | string)[];
   whenToUse?: string;
 }
 
