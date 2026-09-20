@@ -149,6 +149,14 @@ window.addEventListener("message", async (event) => {
           const line = getCallerLine();
           return await sendCtxCall(executionId, "agent", [subgoal, options], line);
         },
+        successCheck: async (customGoal?: string) => {
+          const line = getCallerLine();
+          return await sendCtxCall(executionId, "successCheck", [customGoal], line);
+        },
+        verify: async (customGoal?: string) => {
+          const line = getCallerLine();
+          return await sendCtxCall(executionId, "successCheck", [customGoal], line);
+        },
         getPage: async () => {
           const line = getCallerLine();
           return await sendCtxCall(executionId, "getPage", [], line);

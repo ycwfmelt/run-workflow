@@ -15,7 +15,23 @@ export interface WorkflowMeta {
   whenToUse?: string;
 }
 
+export interface SuccessCheckResult {
+  isGoalReached: boolean;
+  confidence: number;
+  reason?: string;
+  hasChanged?: boolean;
+}
+
 export interface WorkflowContext {
+  /**
+   * Evaluates whether the current goal or step has been accomplished on the page
+   */
+  successCheck: (customGoal?: string) => Promise<SuccessCheckResult>;
+
+  /**
+   * Alias for successCheck()
+   */
+  verify: (customGoal?: string) => Promise<SuccessCheckResult>;
   /**
    * Primary executor: TypeSafe Jev System One
    * Evaluates current DOM, chooses target element, dispatches Bezier mouse/keyboard CDP event

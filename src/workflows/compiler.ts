@@ -14,24 +14,27 @@ The function receives a single parameter \`ctx\` providing:
 - \`await ctx.agent(instruction: string)\`: Alias for \`ctx.jev()\`.
 - \`await ctx.getPage()\`: Returns latest page state:
   \`{ url: string, title: string, elements: InteractiveElement[], activeModal?: { isOpen: boolean, title: string } }\`
+- \`await ctx.successCheck(goal?: string)\`: Inspects the live DOM and evaluates whether the task goal is fully accomplished. Returns \`{ isGoalReached: boolean, confidence: number }\`. Dynamic workflows MUST use this to verify each step and prevent premature termination!
 - \`ctx.phase(title: string)\`: Declares current phase for live UI visualization (e.g. \`ctx.phase("检索待处理列表")\`).
 - \`ctx.log(message: string)\`: Writes a log entry into the execution timeline.
 - \`await ctx.wait(ms: number)\`: Suspends execution for ms to allow DOM rendering.
 - \`await ctx.scroll(deltaY: number)\`: Scrolls the viewport down (positive) or up (negative).
 
 ### Workflow Engineering Guidelines:
-1. Dynamic Real-Time Termination & Control Flow:
-   - Dynamic workflows must ALWAYS inspect the actual live webpage state via \`await getPage()\` in real-time to determine completion, NEVER terminate on an arbitrary numeric count!
+1. Dynamic Real-Time Termination & Goal Verification (successCheck):
+   - Dynamic workflows must ALWAYS inspect the actual live webpage state in real-time to determine completion, NEVER terminate prematurely on a single click!
+   - In modern web applications, accomplishing a goal often requires multi-step navigation (for example: clicking "领取今日奖励" on a homepage navigates to the mission page, where the actual "领取 X 铜币" button must subsequently be clicked!).
+   - Therefore, workflows must use a verification loop with \`await ctx.successCheck()\` to ensure the ultimate goal is verified before ending!
+2. Batch / Iterative Tasks:
    - For batch / iterative tasks (e.g. "批量审批", "处理全部待办", "逐个审核"):
      Use \`while (true)\` or \`while (!isDone)\`. Each loop iteration starts by calling \`const page = await getPage()\` and searching for pending target buttons/items.
      If no pending items are found in the current viewport, try \`await scroll(300)\` or check for pagination \`下一页\`. If neither exists, break and log "页面已无待处理项，任务全部完成！".
-   - For single-pass tasks: Write clear sequential steps with verification.
-2. Modal Dialog Handling:
+3. Modal Dialog Handling:
    - Web applications often show a secondary confirmation modal (e.g. "确认通过该合同吗？").
    - Always check \`if (page.activeModal?.isOpen)\` or after clicking an action, check \`const after = await getPage(); if (after.activeModal?.isOpen) await ctx.jev("在弹窗中点击【确认】按钮");\`
-3. Return Navigation:
+4. Return Navigation:
    - After approving an item in detail view, check if URL contains \`/DETAIL|APPLY/\`, and click the \`返回\` button to return to the list.
-4. Output strictly valid, self-contained JavaScript code body for an \`async (ctx) => { ... }\` function.
+5. Output strictly valid, self-contained JavaScript code body for an \`async (ctx) => { ... }\` function.
 `;
 
 const WorkflowZodSchema = z.object({
@@ -248,20 +251,61 @@ return { processedCount };
 `;
     } else {
       script = `
-const { jev, getPage, wait, phase, log } = ctx;
+const { jev, getPage, wait, phase, log, successCheck } = ctx;
+const taskGoal = "${prompt.replace(/"/g, '\\"')}";
 
-phase("执行目标操作");
-log("正在定位目标执行: ${prompt.replace(/"/g, '\\"')}...");
-await jev("${prompt.replace(/"/g, '\\"')}");
-await wait(1200);
+phase("任务目标感知");
+log("🎯 启动闭环动态工作流，目标: " + taskGoal);
 
-// 二次确认安全守卫
-const afterState = await getPage();
-if (afterState.activeModal?.isOpen) {
-  phase("二次确认");
-  log("检测到前台确认弹窗，执行二次确认...");
-  await jev("在弹窗中点击【确认】或【确定】按钮");
-  await wait(1500);
+let step = 0;
+const maxSteps = 8;
+let isFinished = false;
+
+while (step < maxSteps && !isFinished) {
+  step++;
+
+  // 1. 每步前置达成校验 (successCheck)
+  const preCheck = await successCheck(taskGoal);
+  if (preCheck.isGoalReached) {
+    phase("目标达成");
+    log("🎉 实时前置校验通过：目标已确认圆满达成！");
+    isFinished = true;
+    break;
+  }
+
+  // 2. 执行感知决策动作向目标迈进
+  phase("执行步骤 " + step);
+  log("正在执行第 " + step + " 步感知决策: " + taskGoal);
+  const decision = await jev(taskGoal);
+  await wait(1800);
+
+  // 3. 弹窗二次确认守卫
+  const afterPage = await getPage();
+  if (afterPage.activeModal?.isOpen) {
+    phase("二次确认");
+    log("检测到前台确认弹窗，执行确认...");
+    await jev("在弹窗中点击【确认】或【确定】按钮");
+    await wait(1500);
+  }
+
+  // 4. 每步后置达成校验 (successCheck)
+  const postCheck = await successCheck(taskGoal);
+  if (postCheck.isGoalReached || decision.actionType === "finish") {
+    phase("目标达成");
+    log("🎉 步骤后置校验确认：目标已顺利完成！");
+    isFinished = true;
+    break;
+  }
+
+  // 5. 若找不到目标元素且无状态变化，终止避免无谓死循环
+  if (decision.targetElementId === "none_of_above") {
+    log("⚠️ 当前页面未匹配到进一步可操作项，工作流结束");
+    break;
+  }
+}
+
+if (!isFinished) {
+  log("🏁 已完成 " + step + " 步操作探查，工作流顺利结束");
 }
 `;
     }

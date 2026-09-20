@@ -418,9 +418,78 @@ export class AgentLoop {
               await this.cdp!.clickElement(el.rect, this.config.antiBotMode);
             }
             await sleep(1500);
+
+            // Detect page navigation change
+            const afterActionState = await this.requestPageState(tabId);
+            if (afterActionState.url !== pageState.url) {
+              this.log(
+                "页面导航",
+                "success",
+                1.0,
+                `🔗 动作触发页面跳转: ${pageState.url} ➔ ${afterActionState.url}`
+              );
+            }
           }
         }
         return decision;
+      },
+      successCheck: async (customGoal?: string) => {
+        traceLine();
+        if (this.shouldStop) throw new Error("Workflow stopped by user");
+        while (this.isPaused && !this.shouldStop) await sleep(500);
+
+        const goalToCheck = customGoal || this.currentTask || "当前任务";
+        const pageState = await this.requestPageState(tabId);
+
+        // 1. Fast heuristics on page content
+        const pageText = pageState.elements.map((e) => e.text || "").join(" ");
+        const successKeywords = [
+          "已成功", "领取成功", "提交成功", "保存成功", "处理成功", "审批通过",
+          "已领取", "已连续登录", "今日已签到", "今日已领取", "任务已完成", "已完成", "已通过"
+        ];
+        const hasSuccessKeyword = successKeywords.some((kw) => pageText.includes(kw));
+
+        // 2. Query TypeSafe System One for structured goal verification
+        try {
+          const decision = await this.typesafeService.decideNextAction(
+            goalToCheck,
+            `验证目标是否已达成: "${goalToCheck}"`,
+            pageState,
+            pageState.elements
+          );
+
+          const isReached = Boolean(decision.isGoalReached || decision.actionType === "finish" || hasSuccessKeyword);
+          const conf = Math.max(decision.confidence, decision.goalProbability || 0.8);
+
+          this.log(
+            "状态校验",
+            isReached ? "success" : "info",
+            conf,
+            `[SuccessCheck] 目标 "${goalToCheck}" -> ${isReached ? "✅ 验证已达成" : "⏳ 尚未达成，需继续执行"}`
+          );
+
+          return {
+            isGoalReached: isReached,
+            confidence: conf,
+            reason: decision.reasoningNote,
+          };
+        } catch (err: any) {
+          const isReached = hasSuccessKeyword;
+          this.log(
+            "状态校验",
+            isReached ? "success" : "info",
+            hasSuccessKeyword ? 0.9 : 0.5,
+            `[SuccessCheck 探查] -> ${isReached ? "✅ 检测到成功标志文本" : "⏳ 尚未检测到完成标志"}`
+          );
+          return {
+            isGoalReached: isReached,
+            confidence: hasSuccessKeyword ? 0.9 : 0.5,
+            reason: "Heuristic DOM inspection",
+          };
+        }
+      },
+      verify: async (customGoal?: string) => {
+        return ctx.successCheck(customGoal);
       },
       agent: async (prompt, options) => {
         traceLine();
