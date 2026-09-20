@@ -1,4 +1,4 @@
-import { loadConfig, saveConfig } from "../shared/storage.js";
+import { loadConfig } from "../shared/storage.js";
 import { MessagePayload, StepLog, TaskStatus } from "../shared/types.js";
 
 // DOM elements
@@ -22,63 +22,39 @@ let currentDiagnosticsText = "";
 const workflowsCard = document.getElementById("workflowsCard") as HTMLElement;
 const workflowList = document.getElementById("workflowList") as HTMLElement;
 
-const typesafeApiKeyInput = document.getElementById("typesafeApiKey") as HTMLInputElement;
-const systemTwoProviderSelect = document.getElementById("systemTwoProvider") as HTMLSelectElement;
-const s2DetailsContainer = document.getElementById("s2DetailsContainer") as HTMLElement;
-const systemTwoEndpointInput = document.getElementById("systemTwoEndpoint") as HTMLInputElement;
-const systemTwoModelInput = document.getElementById("systemTwoModel") as HTMLInputElement;
-const systemTwoApiKeyInput = document.getElementById("systemTwoApiKey") as HTMLInputElement;
-const s2KeyRow = document.getElementById("s2KeyRow") as HTMLElement;
+const openOptionsBtn = document.getElementById("openOptionsBtn") as HTMLButtonElement;
+const bannerSettingsBtn = document.getElementById("bannerSettingsBtn") as HTMLButtonElement;
+const apiKeyBanner = document.getElementById("apiKeyBanner") as HTMLElement;
 
-const antiBotCheckbox = document.getElementById("antiBotCheckbox") as HTMLInputElement;
-const saveConfigBtn = document.getElementById("saveConfigBtn") as HTMLButtonElement;
+let cachedApiKey = "";
 
-const PROVIDER_PRESETS: Record<string, { endpoint: string; model: string; needKey: boolean }> = {
-  none: { endpoint: "", model: "", needKey: false },
-  deepseek: { endpoint: "https://api.deepseek.com", model: "deepseek-chat", needKey: true },
-  openai: { endpoint: "https://api.openai.com/v1", model: "gpt-4o-mini", needKey: true },
-  gemini: { endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/", model: "gemini-2.5-flash", needKey: true },
-  siliconflow: { endpoint: "https://api.siliconflow.cn/v1", model: "deepseek-ai/DeepSeek-V3", needKey: true },
-  ollama: { endpoint: "http://localhost:11434/v1", model: "llama3.2", needKey: false },
-  custom: { endpoint: "https://api.openai.com/v1", model: "gpt-4o-mini", needKey: true },
-};
-
-function updateS2UI() {
-  const provider = systemTwoProviderSelect.value;
-  if (provider === "none") {
-    s2DetailsContainer.style.display = "none";
+function openOptions() {
+  if (chrome.runtime.openOptionsPage) {
+    chrome.runtime.openOptionsPage();
   } else {
-    s2DetailsContainer.style.display = "flex";
-    const preset = PROVIDER_PRESETS[provider];
-    if (preset) {
-      if (!systemTwoEndpointInput.value) systemTwoEndpointInput.value = preset.endpoint;
-      if (!systemTwoModelInput.value) systemTwoModelInput.value = preset.model;
-      s2KeyRow.style.display = preset.needKey ? "flex" : "none";
-    }
+    window.open(chrome.runtime.getURL("src/options/index.html"));
   }
 }
 
-systemTwoProviderSelect.addEventListener("change", () => {
-  const provider = systemTwoProviderSelect.value;
-  const preset = PROVIDER_PRESETS[provider];
-  if (preset && provider !== "none") {
-    systemTwoEndpointInput.value = preset.endpoint;
-    systemTwoModelInput.value = preset.model;
+openOptionsBtn?.addEventListener("click", openOptions);
+bannerSettingsBtn?.addEventListener("click", openOptions);
+
+// Reactively listen for configuration changes saved from the Options page
+chrome.storage.onChanged?.addListener((changes, area) => {
+  if (area === "local" && changes.jev_config) {
+    const newConfig = changes.jev_config.newValue;
+    if (newConfig) {
+      cachedApiKey = (newConfig.typesafeApiKey || "").trim();
+      apiKeyBanner.style.display = cachedApiKey ? "none" : "flex";
+    }
   }
-  updateS2UI();
 });
 
-// Load config
+// Load config & state
 async function init() {
   const config = await loadConfig();
-  typesafeApiKeyInput.value = config.typesafeApiKey || "";
-  systemTwoProviderSelect.value = config.systemTwoProvider || "none";
-  systemTwoEndpointInput.value = config.systemTwoEndpoint || "";
-  systemTwoModelInput.value = config.systemTwoModel || "";
-  systemTwoApiKeyInput.value = config.systemTwoApiKey || "";
-  antiBotCheckbox.checked = config.antiBotMode;
-
-  updateS2UI();
+  cachedApiKey = (config.typesafeApiKey || "").trim();
+  apiKeyBanner.style.display = cachedApiKey ? "none" : "flex";
 
   // Request current state from background
   chrome.runtime.sendMessage({ type: "GET_STATE" }, (response) => {
@@ -144,22 +120,6 @@ async function loadMatchingWorkflows() {
 
 init();
 
-// Save config
-saveConfigBtn.addEventListener("click", async () => {
-  await saveConfig({
-    typesafeApiKey: typesafeApiKeyInput.value.trim(),
-    systemTwoProvider: systemTwoProviderSelect.value as any,
-    systemTwoEndpoint: systemTwoEndpointInput.value.trim(),
-    systemTwoModel: systemTwoModelInput.value.trim(),
-    systemTwoApiKey: systemTwoApiKeyInput.value.trim(),
-    antiBotMode: antiBotCheckbox.checked,
-  });
-  saveConfigBtn.textContent = "已保存 ✓";
-  setTimeout(() => {
-    saveConfigBtn.textContent = "保存配置";
-  }, 1500);
-});
-
 // Control buttons
 startBtn.addEventListener("click", () => {
   const prompt = taskPrompt.value.trim();
@@ -167,8 +127,9 @@ startBtn.addEventListener("click", () => {
     alert("请输入任务描述");
     return;
   }
-  if (!typesafeApiKeyInput.value.trim()) {
-    alert("请先在下方输入 TypeSafe API Key！");
+  if (!cachedApiKey) {
+    alert("请先配置 TypeSafe API Key！已为您打开设置页面。");
+    openOptions();
     return;
   }
   chrome.runtime.sendMessage({ type: "START_TASK", prompt }, (res) => {

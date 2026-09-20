@@ -48,9 +48,9 @@ export const PROVIDER_PRESETS: Record<
     defaultModel: "deepseek-ai/DeepSeek-V3",
   },
   ollama: {
-    name: "Ollama 本地大模型",
+    name: "Ollama 本地模型 (deepseek-v4.1-flash:cloud)",
     endpoint: "http://localhost:11434/v1",
-    defaultModel: "llama3.2",
+    defaultModel: "deepseek-v4.1-flash:cloud",
   },
   custom: {
     name: "自定义 OpenAI 兼容 API",

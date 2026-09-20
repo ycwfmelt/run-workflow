@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JevPilot Side Panel</title>
-  <style>:root{--bg-primary:#0f172a;--bg-secondary:#1e293b;--bg-accent:#334155;--text-primary:#f8fafc;--text-muted:#94a3b8;--primary:#8b5cf6;--primary-hover:#7c3aed;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--border:#334155}*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}body{background-color:var(--bg-primary);color:var(--text-primary);flex-direction:column;height:100vh;font-size:13px;line-height:1.4;display:flex;overflow:hidden}header{background-color:var(--bg-secondary);border-bottom:1px solid var(--border);justify-content:space-between;align-items:center;padding:12px 14px;display:flex}.brand{align-items:center;gap:8px;font-size:14px;font-weight:600;display:flex}.brand-badge{text-transform:uppercase;letter-spacing:.5px;background:linear-gradient(135deg,#a855f7,#6366f1);border-radius:4px;padding:2px 6px;font-size:10px}.status-badge{background-color:var(--bg-accent);border-radius:9999px;padding:3px 8px;font-size:11px;font-weight:500}.status-idle{color:#94a3b8;background:#334155}.status-planning{color:#93c5fd;background:#1e3a8a}.status-running{color:#6ee7b7;background:#064e3b}.status-paused{color:#fcd34d;background:#78350f}.status-waiting_user{color:#f472b6;background:#831843}.status-completed{color:#34d399;background:#064e3b}.status-failed{color:#fca5a5;background:#7f1d1d}main{flex-direction:column;flex:1;gap:12px;padding:12px;display:flex;overflow-y:auto}.card{background-color:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px}.card-title{color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;justify-content:space-between;margin-bottom:8px;font-size:11px;font-weight:600;display:flex}textarea{background-color:var(--bg-primary);border:1px solid var(--border);width:100%;height:68px;color:var(--text-primary);resize:none;border-radius:6px;outline:none;padding:8px;font-size:12px}textarea:focus{border-color:var(--primary)}.btn-group{gap:6px;margin-top:8px;display:flex}button{cursor:pointer;border:none;border-radius:6px;justify-content:center;align-items:center;gap:5px;padding:7px 12px;font-size:12px;font-weight:500;transition:all .15s;display:inline-flex}.btn-primary{background-color:var(--primary);color:#fff;flex:1}.btn-primary:hover{background-color:var(--primary-hover)}.btn-secondary{background-color:var(--bg-accent);color:var(--text-primary)}.btn-secondary:hover{background-color:#475569}.btn-danger{color:#fecaca;background-color:#991b1b}.btn-danger:hover{background-color:#b91c1c}.confidence-meter{background:var(--bg-primary);border-radius:9999px;height:6px;margin:6px 0;overflow:hidden}.confidence-fill{background:var(--success);width:0%;height:100%;transition:width .3s}.log-list{flex-direction:column;gap:8px;max-height:280px;display:flex;overflow-y:auto}.log-item{background:var(--bg-primary);border-left:3px solid var(--primary);border-radius:6px;padding:8px;font-size:11px}.log-item.warning{border-left-color:var(--warning)}.log-item.error{border-left-color:var(--danger)}.log-item.success{border-left-color:var(--success)}.log-header{color:var(--text-muted);justify-content:space-between;margin-bottom:2px;font-size:10px;display:flex}.log-confidence{font-weight:600}.settings-row{flex-direction:column;gap:4px;margin-top:8px;display:flex}.settings-row label{color:var(--text-muted);font-size:11px}.settings-row input{background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);border-radius:4px;outline:none;padding:6px 8px;font-size:12px}.settings-row input:focus{border-color:var(--primary)}.footer-actions{justify-content:space-between;align-items:center;margin-top:4px;display:flex}</style>
+  <style>:root{--bg-primary:#0f172a;--bg-secondary:#1e293b;--bg-accent:#334155;--text-primary:#f8fafc;--text-muted:#94a3b8;--primary:#8b5cf6;--primary-hover:#7c3aed;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--border:#334155}*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}body{background-color:var(--bg-primary);color:var(--text-primary);flex-direction:column;height:100vh;font-size:13px;line-height:1.4;display:flex;overflow:hidden}header{background-color:var(--bg-secondary);border-bottom:1px solid var(--border);justify-content:space-between;align-items:center;padding:12px 14px;display:flex}.brand{align-items:center;gap:8px;font-size:14px;font-weight:600;display:flex}.brand-badge{text-transform:uppercase;letter-spacing:.5px;background:linear-gradient(135deg,#a855f7,#6366f1);border-radius:4px;padding:2px 6px;font-size:10px}.status-badge{background-color:var(--bg-accent);border-radius:9999px;padding:3px 8px;font-size:11px;font-weight:500}.status-idle{color:#94a3b8;background:#334155}.status-planning{color:#93c5fd;background:#1e3a8a}.status-running{color:#6ee7b7;background:#064e3b}.status-paused{color:#fcd34d;background:#78350f}.status-waiting_user{color:#f472b6;background:#831843}.status-completed{color:#34d399;background:#064e3b}.status-failed{color:#fca5a5;background:#7f1d1d}main{flex-direction:column;flex:1;gap:12px;padding:12px;display:flex;overflow-y:auto}.card{background-color:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px}.card-title{color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;justify-content:space-between;margin-bottom:8px;font-size:11px;font-weight:600;display:flex}textarea{background-color:var(--bg-primary);border:1px solid var(--border);width:100%;height:68px;color:var(--text-primary);resize:none;border-radius:6px;outline:none;padding:8px;font-size:12px}textarea:focus{border-color:var(--primary)}.btn-group{gap:6px;margin-top:8px;display:flex}button{cursor:pointer;border:none;border-radius:6px;justify-content:center;align-items:center;gap:5px;padding:7px 12px;font-size:12px;font-weight:500;transition:all .15s;display:inline-flex}.btn-primary{background-color:var(--primary);color:#fff;flex:1}.btn-primary:hover{background-color:var(--primary-hover)}.btn-secondary{background-color:var(--bg-accent);color:var(--text-primary)}.btn-secondary:hover{background-color:#475569}.btn-danger{color:#fecaca;background-color:#991b1b}.btn-danger:hover{background-color:#b91c1c}.confidence-meter{background:var(--bg-primary);border-radius:9999px;height:6px;margin:6px 0;overflow:hidden}.confidence-fill{background:var(--success);width:0%;height:100%;transition:width .3s}.log-list{flex-direction:column;gap:8px;max-height:280px;display:flex;overflow-y:auto}.log-item{background:var(--bg-primary);border-left:3px solid var(--primary);border-radius:6px;padding:8px;font-size:11px}.log-item.warning{border-left-color:var(--warning)}.log-item.error{border-left-color:var(--danger)}.log-item.success{border-left-color:var(--success)}.log-header{color:var(--text-muted);justify-content:space-between;margin-bottom:2px;font-size:10px;display:flex}.log-confidence{font-weight:600}.header-right{align-items:center;gap:8px;display:flex}.btn-icon{border:1px solid var(--border);color:var(--text-muted);cursor:pointer;background:0 0;border-radius:6px;justify-content:center;align-items:center;padding:4px 6px;font-size:13px;line-height:1;transition:all .15s;display:inline-flex}.btn-icon:hover{background:var(--bg-accent);color:var(--text-primary);border-color:var(--primary)}.api-key-banner{background:#451a03;border:1px solid #b45309;border-radius:8px;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;display:flex}</style>
   <script type="module" crossorigin src="../../assets/sidepanel.js"></script>
 </head>
 <body>
@@ -13,10 +13,22 @@
       <span>JevPilot</span>
       <span class="brand-badge">System One</span>
     </div>
-    <div id="statusBadge" class="status-badge status-idle">IDLE</div>
+    <div class="header-right">
+      <div id="statusBadge" class="status-badge status-idle">IDLE</div>
+      <button id="openOptionsBtn" class="btn-icon" title="打开全局配置 (API Key / 模型设置)">⚙️</button>
+    </div>
   </header>
 
   <main>
+    <!-- Unconfigured API Key Alert Banner -->
+    <div id="apiKeyBanner" class="api-key-banner" style="display: none;">
+      <div>
+        <div style="font-weight: 600; font-size: 12px; color: #fef08a;">⚠️ 未配置 TypeSafe API Key</div>
+        <div style="font-size: 11px; color: #fde68a; margin-top: 2px;">请先配置 API Key 以启用 System One 决策</div>
+      </div>
+      <button id="bannerSettingsBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap; background: #d97706; color: #fff; border: none;">前往设置 ⚙️</button>
+    </div>
+
     <!-- Task Input Card -->
     <div class="card">
       <div class="card-title">自然语言任务目标</div>
@@ -71,51 +83,6 @@
       </div>
     </div>
 
-    <!-- Quick Settings Collapse -->
-    <div class="card">
-      <div class="card-title">
-        <span>API 配置 (冷启动与模型设置)</span>
-      </div>
-      <div class="settings-row">
-        <label>TypeSafe API Key (Jev System One):</label>
-        <input type="password" id="typesafeApiKey" placeholder="ts_live_..." />
-      </div>
-
-      <div class="settings-row" style="margin-top: 10px;">
-        <label>System Two 规划模型 (用于开放式长任务拆解):</label>
-        <select id="systemTwoProvider" style="background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary); padding: 6px 8px; border-radius: 4px; font-size: 12px; outline: none;">
-          <option value="none">无 (仅使用内置规则解析，零依赖)</option>
-          <option value="deepseek">DeepSeek (deepseek-chat)</option>
-          <option value="openai">OpenAI (gpt-4o-mini)</option>
-          <option value="gemini">Google Gemini (gemini-2.5-flash)</option>
-          <option value="siliconflow">硅基流动 SiliconFlow (DeepSeek-V3)</option>
-          <option value="ollama">Ollama 本地大模型 (无需 Key)</option>
-          <option value="custom">自定义 OpenAI 兼容 API</option>
-        </select>
-      </div>
-
-      <div id="s2DetailsContainer" style="display: none; flex-direction: column; gap: 8px; margin-top: 6px; padding: 8px; background: #172033; border-radius: 6px; border: 1px solid #334155;">
-        <div class="settings-row">
-          <label>Endpoint URL:</label>
-          <input type="text" id="systemTwoEndpoint" placeholder="https://api.openai.com/v1" />
-        </div>
-        <div class="settings-row">
-          <label>Model 名称:</label>
-          <input type="text" id="systemTwoModel" placeholder="gpt-4o-mini" />
-        </div>
-        <div class="settings-row" id="s2KeyRow">
-          <label>API Key:</label>
-          <input type="password" id="systemTwoApiKey" placeholder="sk-..." />
-        </div>
-      </div>
-      <div class="footer-actions">
-        <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); cursor: pointer;">
-          <input type="checkbox" id="antiBotCheckbox" checked />
-          启用人机贝塞尔鼠标与防风控
-        </label>
-        <button id="saveConfigBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px;">保存配置</button>
-      </div>
-    </div>
   </main>
 
 </body>

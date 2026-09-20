@@ -2,68 +2,114 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>JevPilot Settings</title>
-  <style>body{color:#f8fafc;background-color:#0f172a;max-width:680px;margin:0 auto;padding:40px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;line-height:1.5}h1{color:#a855f7;align-items:center;gap:8px;margin-bottom:24px;font-size:22px;display:flex}.section{background:#1e293b;border:1px solid #334155;border-radius:8px;margin-bottom:20px;padding:20px}.section-title{color:#cbd5e1;border-bottom:1px solid #334155;margin-bottom:16px;padding-bottom:8px;font-size:14px;font-weight:600}.form-group{margin-bottom:14px}label{color:#94a3b8;margin-bottom:6px;font-size:12px;display:block}input[type=text],input[type=password],select{color:#f8fafc;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:6px;outline:none;width:100%;padding:8px 12px;font-size:13px}input:focus,select:focus{border-color:#a855f7}.checkbox-label{color:#e2e8f0;cursor:pointer;align-items:center;gap:8px;font-size:13px;display:flex}button{color:#fff;cursor:pointer;background:#8b5cf6;border:none;border-radius:6px;padding:10px 20px;font-size:13px;font-weight:600}button:hover{background:#7c3aed}#status{color:#10b981;margin-left:12px;font-size:13px}</style>
+  <title>JevPilot 全局参数配置</title>
+  <style>:root{--bg-primary:#0f172a;--bg-secondary:#1e293b;--bg-accent:#334155;--text-primary:#f8fafc;--text-muted:#94a3b8;--primary:#8b5cf6;--primary-hover:#7c3aed;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--border:#334155}body{background-color:var(--bg-primary);color:var(--text-primary);max-width:680px;margin:0 auto;padding:36px 20px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;line-height:1.5}.header-area{margin-bottom:24px}h1{color:#f8fafc;align-items:center;gap:10px;margin-bottom:6px;font-size:22px;display:flex}.badge-s1{color:#fff;background:linear-gradient(135deg,#a855f7,#6366f1);border-radius:9999px;padding:2px 8px;font-size:11px;font-weight:600}.subtitle{color:var(--text-muted);font-size:13px}.section{background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;margin-bottom:20px;padding:20px}.section-title{color:#cbd5e1;border-bottom:1px solid var(--border);justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:10px;font-size:14px;font-weight:600;display:flex}.section-tag{border-radius:4px;padding:2px 8px;font-size:11px;font-weight:500}.tag-primary{color:#c7d2fe;background:#312e81}.tag-success{color:#a7f3d0;background:#064e3b}.tag-neutral{color:#94a3b8;background:#334155}.form-group{margin-bottom:16px}label{color:#cbd5e1;margin-bottom:6px;font-size:12px;font-weight:500;display:block}.label-hint{color:var(--text-muted);margin-left:6px;font-weight:400}.input-wrapper{align-items:center;display:flex;position:relative}input[type=text],input[type=password],select{background:var(--bg-primary);border:1px solid var(--border);width:100%;color:var(--text-primary);box-sizing:border-box;border-radius:6px;outline:none;padding:9px 12px;font-size:13px;transition:border-color .15s}input:focus,select:focus{border-color:var(--primary)}.toggle-pwd-btn{color:var(--text-muted);cursor:pointer;background:0 0;border:none;border-radius:4px;padding:4px 6px;font-size:14px;position:absolute;right:8px}.toggle-pwd-btn:hover{color:var(--text-primary)}.desc-text{color:var(--text-muted);margin-top:5px;font-size:11px;line-height:1.4}.feature-pills{flex-wrap:wrap;gap:6px;margin-top:10px;display:flex}.feature-pill{color:#94a3b8;background:#0b1120;border:1px solid #1e293b;border-radius:6px;padding:4px 8px;font-size:11px}.btn-group-footer{align-items:center;gap:12px;margin-top:24px;display:flex}button.btn-save{background:var(--primary);color:#fff;cursor:pointer;border:none;border-radius:6px;padding:10px 24px;font-size:13px;font-weight:600;transition:background .15s}button.btn-save:hover{background:var(--primary-hover)}button.btn-secondary{background:var(--bg-accent);color:#cbd5e1;border:1px solid var(--border);cursor:pointer;border-radius:6px;padding:9px 16px;font-size:13px}button.btn-secondary:hover{color:#fff;background:#475569}#status{color:var(--success);font-size:13px;font-weight:500}.test-feedback{border-radius:4px;margin-top:8px;padding:6px 10px;font-size:11px;display:none}.feedback-ok{color:#6ee7b7;background:#064e3b;border:1px solid #059669}.feedback-warn{color:#fde68a;background:#451a03;border:1px solid #b45309}</style>
   <script type="module" crossorigin src="../../assets/options.js"></script>
 </head>
 <body>
-  <h1>JevPilot 全局参数配置</h1>
+  <div class="header-area">
+    <h1>
+      <span>JevPilot 参数与凭据设置</span>
+      <span class="badge-s1">Settings</span>
+    </h1>
+    <div class="subtitle">集中管理 TypeSafe System One 核心凭据、S2 工作流调度器及反风控仿真机制</div>
+  </div>
 
+  <!-- Section 1: TypeSafe Jev (System One) -->
   <div class="section">
-    <div class="section-title">TypeSafe Jev (System One) 配置</div>
-    <div class="form-group">
-      <label>TypeSafe API Key:</label>
-      <input type="password" id="typesafeApiKey" placeholder="ts_live_..." />
+    <div class="section-title">
+      <span>1. TypeSafe Jev (System One 执行层)</span>
+      <span class="section-tag tag-primary">核心视觉决策</span>
     </div>
+
     <div class="form-group">
-      <label>Model Version:</label>
+      <label>
+        TypeSafe API Key:
+        <span class="label-hint">(必填，微执行决策依赖)</span>
+      </label>
+      <div class="input-wrapper">
+        <input type="password" id="typesafeApiKey" placeholder="ts_live_..." autocomplete="off" />
+        <button type="button" id="toggleApiKeyBtn" class="toggle-pwd-btn" title="显示/隐藏 Key">👁️</button>
+      </div>
+      <div class="desc-text">
+        用于调用 TypeSafe AI 强类型微模型（~100ms 快速决策）。执行侧边栏不会保存或明文展示您的 Key。
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Model Version 模型版本:</label>
       <select id="typesafeModel">
-        <option value="jev-latest">jev-latest (Recommended)</option>
+        <option value="jev-latest">jev-latest (推荐，性能与精度最优)</option>
         <option value="jev-1.13">jev-1.13</option>
         <option value="jev-1.12">jev-1.12</option>
       </select>
     </div>
-    <div class="form-group">
-      <label>置信度阈值 (Confidence Threshold, 默认 0.70):</label>
+
+    <div class="form-group" style="margin-bottom: 0;">
+      <label>置信度阈值 (Confidence Threshold):</label>
       <input type="text" id="confidenceThreshold" value="0.70" />
+      <div class="desc-text">
+        Jev 返回概率低于该阈值时将自动重试或等待渲染，默认推荐 0.70 (有效范围 0.10 ~ 1.00)。
+      </div>
     </div>
   </div>
 
+  <!-- Section 2: System Two (Ollama + deepseek-v4.1-flash:cloud) -->
   <div class="section">
-    <div class="section-title">System Two (冷启动规划模型)</div>
-    <div class="form-group">
-      <label>Provider:</label>
-      <select id="systemTwoProvider">
-        <option value="none">None (内置启发式规则解析)</option>
-        <option value="openai">OpenAI 兼容 API (GPT-4o, Gemini, DeepSeek)</option>
-      </select>
+    <div class="section-title">
+      <span>2. System Two (S2 动态工作流编排模型)</span>
+      <span class="section-tag tag-neutral">固定预置</span>
     </div>
+
     <div class="form-group">
-      <label>API Endpoint:</label>
-      <input type="text" id="systemTwoEndpoint" value="https://api.openai.com/v1" />
+      <label>规划引擎 Provider (已固定):</label>
+      <input type="text" value="Ollama (本地/私有大模型服务)" disabled style="background: #172033; color: #94a3b8; cursor: not-allowed;" />
     </div>
+
     <div class="form-group">
-      <label>API Key:</label>
-      <input type="password" id="systemTwoApiKey" placeholder="sk-..." />
+      <label>模型名称 Model (已固定):</label>
+      <input type="text" id="systemTwoModel" value="deepseek-v4.1-flash:cloud" readonly style="background: #172033; color: #93c5fd; font-family: monospace; font-weight: 500;" />
     </div>
+
     <div class="form-group">
-      <label>Model Name:</label>
-      <input type="text" id="systemTwoModel" value="gpt-4o-mini" />
+      <label>Ollama API 服务地址 (Endpoint):</label>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="systemTwoEndpoint" value="http://localhost:11434/v1" placeholder="http://localhost:11434/v1" />
+        <button type="button" id="testOllamaBtn" class="btn-secondary" style="white-space: nowrap; padding: 0 14px; font-size: 12px;">测试连接</button>
+      </div>
+      <div id="ollamaFeedback" class="test-feedback"></div>
+      <div class="desc-text">
+        默认连接本地 Ollama 服务（默认 11434 端口）。若本地未启动 Ollama，JevPilot 将<strong>自动平滑降级至内置智能意图规划器</strong>，不影响审批与自动化操作执行。
+      </div>
     </div>
   </div>
 
+  <!-- Section 3: Anti-Bot Emulation -->
   <div class="section">
-    <div class="section-title">人机防风控设置 (Anti-Bot Emulation)</div>
-    <div class="form-group">
-      <label class="checkbox-label">
-        <input type="checkbox" id="antiBotMode" checked />
-        启用三次贝塞尔曲线鼠标轨迹与高斯击键延迟 (CDP Hardware Emulation)
-      </label>
+    <div class="section-title">
+      <span>3. 人机防风控 (CDP Hardware Emulation)</span>
+      <span class="section-tag tag-success">固定全量启用 ✓</span>
+    </div>
+
+    <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6;">
+      系统已永久锁定开启真实人类行为仿真。通过 Chrome DevTools Protocol 硬件输入层模拟，彻底规避各类企业系统及第三方反自动化风控检测：
+    </div>
+
+    <div class="feature-pills">
+      <div class="feature-pill">🎯 三次贝塞尔平滑鼠标轨迹 (Cubic Bezier)</div>
+      <div class="feature-pill">⚡ Fitts 定律仿人物理加减速模型</div>
+      <div class="feature-pill">🌊 终点高斯微抖动拟合 (Micro-Jitter)</div>
+      <div class="feature-pill">⌨️ 随机泊松分布击键延时 (Gaussian Typing Delay)</div>
+      <div class="feature-pill">🛡️ 真实鼠标按下/释放微停顿 (Natural Click Hold)</div>
     </div>
   </div>
 
-  <button id="saveBtn">保存全部配置</button>
-  <span id="status"></span>
+  <!-- Footer Actions -->
+  <div class="btn-group-footer">
+    <button id="saveBtn" class="btn-save">保存全部设置</button>
+    <button id="resetBtn" class="btn-secondary">恢复默认值</button>
+    <span id="status"></span>
+  </div>
 
 </body>
 </html>
