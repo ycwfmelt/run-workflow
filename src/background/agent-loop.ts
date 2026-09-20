@@ -124,6 +124,7 @@ export class AgentLoop {
   async stop() {
     this.shouldStop = true;
     this.status = "idle";
+    this.cdp?.hideVirtualMouse();
     this.broadcastState();
   }
 

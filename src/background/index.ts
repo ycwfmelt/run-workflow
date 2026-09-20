@@ -19,17 +19,23 @@ async function init() {
     }
   });
 
+  // Enable automatic side panel toggle on toolbar icon click
+  if ((chrome as any).sidePanel?.setPanelBehavior) {
+    (chrome as any).sidePanel
+      .setPanelBehavior({ openPanelOnActionClick: true })
+      .catch((err: any) => console.warn("[Ang] setPanelBehavior warning:", err));
+  }
+
   console.log("[Ang] Background Service Worker initialized.");
 }
 
 init();
 
-// Open side panel on extension icon click
+// Open side panel on extension icon click (fallback if setPanelBehavior not supported)
 chrome.action.onClicked.addListener(async (tab) => {
   if (tab.id && tab.windowId) {
-    // Open side panel in the current window
     if ((chrome as any).sidePanel && (chrome as any).sidePanel.open) {
-      await (chrome as any).sidePanel.open({ windowId: tab.windowId });
+      await (chrome as any).sidePanel.open({ windowId: tab.windowId }).catch(() => {});
     }
   }
 });
@@ -75,6 +81,21 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
         const url = activeTab?.url || "";
         const workflows = await WorkflowRegistry.getMatchingWorkflows(url);
         return { success: true, workflows };
+      }
+      case "GET_ALL_WORKFLOWS": {
+        const workflows = await WorkflowRegistry.getAllWorkflows();
+        return { success: true, workflows };
+      }
+      case "SAVE_WORKFLOW": {
+        await WorkflowRegistry.saveWorkflow(message.id, message.meta, message.script);
+        return { success: true };
+      }
+      case "DELETE_WORKFLOW": {
+        const success = await WorkflowRegistry.deleteWorkflow(message.id);
+        return { success };
+      }
+      case "CLOSE_SIDEPANEL": {
+        return { success: true };
       }
       case "PAUSE_TASK": {
         await agentLoop!.pause();

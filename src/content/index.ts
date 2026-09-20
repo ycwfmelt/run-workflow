@@ -1,5 +1,11 @@
 import { extractInteractiveElements, elementNodeMap } from "./dom-extractor.js";
 import { MessagePayload } from "../shared/types.js";
+import { VirtualCursor } from "./virtual-cursor.js";
+
+// Pre-initialize virtual cursor in top window
+if (window === window.top) {
+  VirtualCursor.getInstance();
+}
 
 function highlightElement(elementId: string) {
   clearHighlights();
@@ -45,6 +51,24 @@ chrome.runtime.onMessage.addListener(
       }
       case "CLEAR_HIGHLIGHTS": {
         clearHighlights();
+        sendResponse({ success: true });
+        break;
+      }
+      case "VIRTUAL_MOUSE_UPDATE": {
+        if (window === window.top) {
+          VirtualCursor.getInstance().update(
+            message.x,
+            message.y,
+            message.action
+          );
+        }
+        sendResponse({ success: true });
+        break;
+      }
+      case "VIRTUAL_MOUSE_HIDE": {
+        if (window === window.top) {
+          VirtualCursor.getInstance().hide();
+        }
         sendResponse({ success: true });
         break;
       }

@@ -29,6 +29,7 @@
     <div class="header-right">
       <div id="statusBadge" class="status-badge status-idle">IDLE</div>
       <button id="openOptionsBtn" class="btn-icon" title="打开全局配置 (API Key / 模型设置)">⚙️</button>
+      <button id="closeSidePanelBtn" class="btn-icon" title="关闭侧边栏" style="font-size: 14px; font-weight: bold; line-height: 1; padding: 4px 7px;">✕</button>
     </div>
   </header>
 
@@ -59,7 +60,10 @@
     <div class="card" id="workflowsCard" style="display: none; border-color: #6366f1;">
       <div class="card-title" style="color: #a5b4fc; display: flex; justify-content: space-between; align-items: center;">
         <span>⚡ 适用当前页面的动态工作流</span>
-        <span style="font-size: 10px; background: #312e81; color: #c7d2fe; padding: 2px 6px; border-radius: 4px;">JS Recipe</span>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 10px; background: #312e81; color: #c7d2fe; padding: 2px 6px; border-radius: 4px;">JS Recipe</span>
+          <button id="manageWorkflowsBtn" class="btn-icon" title="管理工作流匹配规则与脚本" style="font-size: 11px; padding: 2px 6px;">⚙️ 管理</button>
+        </div>
       </div>
       <div id="workflowList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;"></div>
     </div>

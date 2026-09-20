@@ -23,7 +23,7 @@
       color: var(--text-primary);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       padding: 36px 20px;
-      max-width: 680px;
+      max-width: 760px;
       margin: 0 auto;
       line-height: 1.5;
     }
@@ -223,6 +223,63 @@
       color: #fde68a;
       border: 1px solid #b45309;
     }
+
+    /* Workflow Manager Styles */
+    .wf-card {
+      background: #0b1120;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 16px;
+      transition: all 0.2s ease;
+    }
+    .wf-card:hover {
+      border-color: #475569;
+    }
+    .wf-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .tag-builtin {
+      background: #1e1b4b;
+      color: #a5b4fc;
+      border: 1px solid #3730a3;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .tag-custom {
+      background: #064e3b;
+      color: #6ee7b7;
+      border: 1px solid #059669;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .code-textarea {
+      width: 100%;
+      height: 180px;
+      background: #030712;
+      color: #a5f3fc;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11.5px;
+      line-height: 1.5;
+      resize: vertical;
+      white-space: pre;
+      tab-size: 2;
+      outline: none;
+      box-sizing: border-box;
+      margin-top: 6px;
+    }
+    .code-textarea:focus {
+      border-color: var(--primary);
+    }
   </style>
 </head>
 <body>
@@ -333,6 +390,50 @@
       <div class="feature-pill">🌊 终点高斯微抖动拟合 (Micro-Jitter)</div>
       <div class="feature-pill">⌨️ 随机泊松分布击键延时 (Gaussian Typing Delay)</div>
       <div class="feature-pill">🛡️ 真实鼠标按下/释放微停顿 (Natural Click Hold)</div>
+    </div>
+  </div>
+
+  <!-- Section 4: Dynamic Workflows Recipe Manager -->
+  <div class="section" id="workflowsSection">
+    <div class="section-title">
+      <span>4. 动态工作流 Recipe 管理 (Workflow Manager)</span>
+      <span class="section-tag tag-primary">JS 动态原语</span>
+    </div>
+
+    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.6;">
+      动态工作流将自动化流程固化为纯 JavaScript 异步函数。运行时原生执行，支持条件判断、循环分支，并可通过 URL 规则在目标网页一键秒级调出。
+    </div>
+
+    <!-- Match Rule Helper & Tester -->
+    <div style="background: #0b1120; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+      <div style="font-weight: 600; font-size: 12px; color: #cbd5e1; margin-bottom: 6px; display: flex; justify-content: space-between;">
+        <span>🎯 URL 匹配规则说明与实时测试器</span>
+        <span style="font-size: 11px; color: #818cf8;">支持 4 种匹配语法</span>
+      </div>
+      <div style="font-size: 11px; color: #94a3b8; line-height: 1.6; margin-bottom: 10px;">
+        • <strong>* 或留空</strong>：全局适用（所有网址生效）<br>
+        • <strong>域名/路径子串</strong>：如 <code>crm.example.com</code> 或 <code>github.com/pulls</code><br>
+        • <strong>通配符 Glob</strong>：如 <code>*.example.com/*</code> 或 <code>https://*</code><br>
+        • <strong>正则表达式</strong>：如 <code>/^https:\/\/.*\.example\.com/i</code>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <input type="text" id="testUrlInput" placeholder="输入测试网址，如: https://crm.example.com/#/WORK_ITEM" style="font-size: 12px; padding: 7px 10px;" />
+        <button type="button" id="testUrlBtn" class="btn-secondary" style="white-space: nowrap; padding: 7px 12px; font-size: 12px;">测试匹配</button>
+      </div>
+      <div id="testUrlResult" style="margin-top: 8px; font-size: 11px; color: #38bdf8; display: none; padding: 6px 10px; background: #030712; border-radius: 4px; border: 1px solid #1e293b;"></div>
+    </div>
+
+    <!-- Workflow List Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+      <div style="font-size: 13px; font-weight: 600; color: #f8fafc;" id="workflowCountTitle">已配置工作流列表</div>
+      <button type="button" id="addNewWorkflowBtn" class="btn-secondary" style="background: #312e81; color: #c7d2fe; border-color: #4338ca; font-size: 12px; padding: 6px 12px; font-weight: 500;">
+        ➕ 新建自定义工作流
+      </button>
+    </div>
+
+    <!-- Workflows Container -->
+    <div id="workflowsContainer" style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="color: var(--text-muted); font-size: 12px; text-align: center; padding: 20px;">正在加载工作流列表...</div>
     </div>
   </div>
 

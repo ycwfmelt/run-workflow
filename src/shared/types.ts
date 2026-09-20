@@ -148,6 +148,17 @@ export type MessagePayload =
   | { type: "RESUME_TASK" }
   | { type: "STOP_TASK" }
   | { type: "SAVE_LAST_WORKFLOW" }
+  | { type: "CLOSE_SIDEPANEL" }
+  | {
+      type: "VIRTUAL_MOUSE_UPDATE";
+      x: number;
+      y: number;
+      action?: "move" | "down" | "up" | "click";
+    }
+  | { type: "VIRTUAL_MOUSE_HIDE" }
+  | { type: "GET_ALL_WORKFLOWS" }
+  | { type: "SAVE_WORKFLOW"; workflow: any }
+  | { type: "DELETE_WORKFLOW"; id: string }
   | {
       type: "AGENT_STATE_UPDATE";
       status: TaskStatus;
@@ -158,3 +169,4 @@ export type MessagePayload =
       canSaveWorkflow?: boolean;
       workflowName?: string;
     };
+

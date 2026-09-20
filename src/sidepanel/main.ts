@@ -49,6 +49,15 @@ saveWorkflowBtn?.addEventListener("click", () => {
   });
 });
 
+const closeSidePanelBtn = document.getElementById("closeSidePanelBtn") as HTMLButtonElement;
+const manageWorkflowsBtn = document.getElementById("manageWorkflowsBtn") as HTMLButtonElement;
+
+closeSidePanelBtn?.addEventListener("click", () => {
+  window.close();
+});
+
+manageWorkflowsBtn?.addEventListener("click", openOptions);
+
 function openOptions() {
   if (chrome.runtime.openOptionsPage) {
     chrome.runtime.openOptionsPage();
@@ -112,8 +121,9 @@ async function loadMatchingWorkflows() {
 
         item.innerHTML = `
           <div style="flex: 1; min-width: 0;">
-            <div style="font-weight: 600; font-size: 12px; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-              ⚡ ${escapeHtml(wf.meta.name)}
+            <div style="font-weight: 600; font-size: 12px; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 6px;">
+              <span>⚡ ${escapeHtml(wf.meta.name)}</span>
+              <span style="font-size: 10px; color: #a5b4fc; background: #1e1b4b; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-weight: normal;" title="匹配规则: ${escapeHtml(wf.meta.matchUrl || '*')}">${escapeHtml(wf.meta.matchUrl || "*")}</span>
             </div>
             <div style="font-size: 11px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;">
               ${escapeHtml(wf.meta.description)}

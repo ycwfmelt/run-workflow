@@ -34,12 +34,30 @@ export class CDPClient {
 
   async detach(): Promise<void> {
     if (!this.attached) return;
+    this.hideVirtualMouse();
     return new Promise((resolve) => {
       chrome.debugger.detach({ tabId: this.tabId }, () => {
         this.attached = false;
         resolve();
       });
     });
+  }
+
+  private sendVirtualMouse(x: number, y: number, action?: "move" | "down" | "up" | "click") {
+    chrome.tabs.sendMessage(this.tabId, {
+      type: "VIRTUAL_MOUSE_UPDATE",
+      x,
+      y,
+      action,
+    }).catch(() => {
+      // Ignore if tab is navigating or script not yet attached
+    });
+  }
+
+  hideVirtualMouse() {
+    chrome.tabs.sendMessage(this.tabId, {
+      type: "VIRTUAL_MOUSE_HIDE",
+    }).catch(() => {});
   }
 
   private async sendCommand<T = any>(method: string, params: Record<string, any> = {}): Promise<T> {
@@ -73,6 +91,7 @@ export class CDPClient {
         y: target.y,
       });
       this.currentMousePos = target;
+      this.sendVirtualMouse(target.x, target.y, "move");
       return;
     }
 
@@ -87,6 +106,7 @@ export class CDPClient {
         x: pt.x,
         y: pt.y,
       });
+      this.sendVirtualMouse(pt.x, pt.y, "move");
       await sleep(delayPerStep);
     }
 
@@ -109,6 +129,9 @@ export class CDPClient {
       await sleep(35 + Math.random() * 55);
     }
 
+    // Visual feedback for mouse press
+    this.sendVirtualMouse(targetPoint.x, targetPoint.y, "down");
+
     // Mouse down
     await this.sendCommand("Input.dispatchMouseEvent", {
       type: "mousePressed",
@@ -121,6 +144,9 @@ export class CDPClient {
     // Button hold duration (60ms - 120ms)
     const holdDuration = antiBot ? 65 + Math.random() * 55 : 50;
     await sleep(holdDuration);
+
+    // Visual feedback for mouse release
+    this.sendVirtualMouse(targetPoint.x, targetPoint.y, "up");
 
     // Mouse up
     await this.sendCommand("Input.dispatchMouseEvent", {
