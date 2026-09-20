@@ -1,5 +1,5 @@
 import { CDPClient } from "./cdp-client.js";
-import { TypeSafeService } from "./typesafe-service.js";
+import { TypeSafeService, JevDecision } from "./typesafe-service.js";
 import { TaskPlanner, TaskPlan } from "./planner.js";
 import {
   AgentConfig,
@@ -49,15 +49,17 @@ export class AgentLoop {
   }
 
   private broadcastState() {
-    chrome.runtime.sendMessage({
-      type: "AGENT_STATE_UPDATE",
-      status: this.status,
-      currentTask: this.currentTask,
-      currentStep: this.currentStepIndex + 1,
-      recentLogs: this.logs.slice(-15),
-    } as MessagePayload).catch(() => {
-      // Ignore if sidepanel is not currently open
-    });
+    chrome.runtime
+      .sendMessage({
+        type: "AGENT_STATE_UPDATE",
+        status: this.status,
+        currentTask: this.currentTask,
+        currentStep: this.currentStepIndex + 1,
+        recentLogs: this.logs.slice(-25),
+      } as MessagePayload)
+      .catch(() => {
+        // Sidepanel might not be open
+      });
   }
 
   private log(
@@ -68,6 +70,7 @@ export class AgentLoop {
     targetElement?: { id: string; description: string },
     actionType?: any
   ) {
+    console.log(`[JevPilot] [${status.toUpperCase()}] ${subgoal} -> ${message}`);
     const entry: StepLog = {
       stepNumber: this.logs.length + 1,
       timestamp: Date.now(),
@@ -108,23 +111,60 @@ export class AgentLoop {
   }
 
   /**
-   * Request content script to extract DOM elements
+   * Self-healing content script injection if page was open prior to extension reload
+   */
+  private async ensureContentScriptInjected(tabId: number): Promise<void> {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ["content.js"],
+      });
+      await sleep(200);
+    } catch (err: any) {
+      console.warn("[JevPilot] Auto-injection warning:", err);
+    }
+  }
+
+  /**
+   * Request content script to extract DOM elements with self-healing retry
    */
   private async requestPageState(tabId: number): Promise<PageState> {
     return new Promise((resolve, reject) => {
-      chrome.tabs.sendMessage(
-        tabId,
-        { type: "EXTRACT_DOM" },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else if (response && response.state) {
-            resolve(response.state);
-          } else {
-            reject(new Error("Failed to extract DOM state"));
+      chrome.tabs.sendMessage(tabId, { type: "EXTRACT_DOM" }, async (response) => {
+        if (chrome.runtime.lastError) {
+          const errMsg = chrome.runtime.lastError.message || "";
+          if (
+            errMsg.includes("Receiving end does not exist") ||
+            errMsg.includes("Could not establish connection")
+          ) {
+            try {
+              await this.ensureContentScriptInjected(tabId);
+              chrome.tabs.sendMessage(
+                tabId,
+                { type: "EXTRACT_DOM" },
+                (retryRes) => {
+                  if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                  } else if (retryRes && retryRes.state) {
+                    resolve(retryRes.state);
+                  } else {
+                    reject(new Error("注入 Content Script 后仍无法获取 DOM 状态"));
+                  }
+                }
+              );
+              return;
+            } catch (injectErr: any) {
+              reject(new Error(`无法注入内容脚本: ${injectErr.message}`));
+              return;
+            }
           }
+          reject(new Error(errMsg));
+        } else if (response && response.state) {
+          resolve(response.state);
+        } else {
+          reject(new Error("获取到的 DOM 状态为空"));
         }
-      );
+      });
     });
   }
 
@@ -141,13 +181,27 @@ export class AgentLoop {
     this.broadcastState();
 
     try {
+      // 0. Validate target tab URL
+      const targetTab = await chrome.tabs.get(tabId);
+      const url = targetTab.url || "";
+      if (
+        url.startsWith("chrome://") ||
+        url.startsWith("chrome-extension://") ||
+        url.startsWith("edge://") ||
+        url.startsWith("about:")
+      ) {
+        throw new Error(
+          `无法在浏览器内部页面 (${url || "about:blank"}) 上执行自动化。请切换或打开目标业务网页（如您的管理后台、Google、GitHub等）后再试。`
+        );
+      }
+
       // 1. System Two: Plan and extract entities
       const plan: TaskPlan = await this.planner.createPlan(prompt);
       this.log(
         "Task Decomposition",
         "success",
         1.0,
-        `Task plan created with ${plan.steps.length} subgoals.`
+        `任务拆解为 ${plan.steps.length} 个阶段目标: ${plan.steps.map((s, idx) => `[${idx + 1}] ${s.subgoal}`).join("; ")}`
       );
 
       // 2. Attach CDP via chrome.debugger
@@ -162,6 +216,13 @@ export class AgentLoop {
         if (this.shouldStop) break;
         this.currentStepIndex = i;
         const currentStep = plan.steps[i];
+
+        this.log(
+          `目标 [${i + 1}/${plan.steps.length}]`,
+          "success",
+          1.0,
+          `开始执行: "${currentStep.subgoal}"`
+        );
 
         let stepCompleted = false;
         let attempts = 0;
@@ -180,23 +241,54 @@ export class AgentLoop {
           let pageState: PageState;
           try {
             pageState = await this.requestPageState(tabId);
-          } catch (e) {
-            await sleep(1000);
+          } catch (e: any) {
+            this.log(
+              currentStep.subgoal,
+              "warning",
+              0,
+              `无法读取页面元素 (${e.message})，重试 (${attempts}/${maxAttemptsPerStep})...`
+            );
+            await sleep(1200);
             continue;
           }
 
-          if (pageState.elements.length === 0) {
-            await sleep(1000);
+          if (!pageState.elements || pageState.elements.length === 0) {
+            this.log(
+              currentStep.subgoal,
+              "warning",
+              0,
+              `页面当前视口未扫描到可视交互元素，正在滚动重试 (${attempts}/${maxAttemptsPerStep})...`
+            );
+            await this.cdp.scroll(300);
+            await sleep(1200);
             continue;
           }
+
+          this.log(
+            currentStep.subgoal,
+            "success",
+            1.0,
+            `已捕获 ${pageState.elements.length} 个可视元素，调用 Jev System One 进行决策...`
+          );
 
           // Consult Jev System One
-          const decision = await this.typesafeService.decideNextAction(
-            plan.goal,
-            currentStep.subgoal,
-            pageState,
-            pageState.elements
-          );
+          let decision: JevDecision;
+          try {
+            decision = await this.typesafeService.decideNextAction(
+              plan.goal,
+              currentStep.subgoal,
+              pageState,
+              pageState.elements
+            );
+          } catch (apiErr: any) {
+            this.log(
+              currentStep.subgoal,
+              "error",
+              0,
+              `Jev API 请求失败: ${apiErr.message}`
+            );
+            throw apiErr;
+          }
 
           // Check if blocked by CAPTCHA
           if (decision.isBlockedByCaptcha) {
@@ -205,7 +297,7 @@ export class AgentLoop {
               currentStep.subgoal,
               "warning",
               decision.captchaProbability,
-              "Detected CAPTCHA / Slider / Login verification. Pausing for manual intervention."
+              "检测到滑块/验证码/安全阻断。自动化已自动暂停，请手动完成后在侧边栏点击【▶ 继续】"
             );
             this.isPaused = true;
             this.broadcastState();
@@ -213,12 +305,15 @@ export class AgentLoop {
           }
 
           // Confidence-gated routing
-          if (decision.targetElementId === "none_of_above" || decision.confidence < this.config.confidenceThreshold) {
+          if (
+            decision.targetElementId === "none_of_above" ||
+            decision.confidence < this.config.confidenceThreshold
+          ) {
             this.log(
               currentStep.subgoal,
               "warning",
               decision.confidence,
-              `Low confidence (${decision.confidence.toFixed(2)}) or element not in view. Scrolling page down.`
+              `Jev 置信度偏低 (${(decision.confidence * 100).toFixed(0)}%) 或目标不在当前屏，正在平滑向下滚动查找...`
             );
             await this.cdp.scroll(350);
             await sleep(1200);
@@ -231,7 +326,13 @@ export class AgentLoop {
           );
 
           if (!targetElement) {
-            await this.cdp.scroll(200);
+            this.log(
+              currentStep.subgoal,
+              "warning",
+              decision.confidence,
+              `找不到元素 ID ${decision.targetElementId}，滚动重试...`
+            );
+            await this.cdp.scroll(250);
             await sleep(800);
             continue;
           }
@@ -242,7 +343,7 @@ export class AgentLoop {
             elementId: targetElement.id,
           }).catch(() => {});
 
-          const elemDesc = `[${targetElement.id}] <${targetElement.tag}> ${targetElement.text || targetElement.placeholder || ""}`;
+          const elemDesc = `[${targetElement.id}] <${targetElement.tag}> "${targetElement.text || targetElement.placeholder || targetElement.ariaLabel || ""}"`;
 
           // Execute action via CDP
           if (decision.actionType === "type" || targetElement.isInput) {
@@ -251,7 +352,7 @@ export class AgentLoop {
               currentStep.subgoal,
               "success",
               decision.confidence,
-              `Typing "${textToType}" into ${elemDesc}`,
+              `Jev 选定输入框: 聚焦并输入 "${textToType}" -> ${elemDesc}`,
               { id: targetElement.id, description: elemDesc },
               "type"
             );
@@ -271,7 +372,7 @@ export class AgentLoop {
               currentStep.subgoal,
               "success",
               decision.confidence,
-              `Clicking ${elemDesc}`,
+              `Jev 选定按钮: 贝塞尔轨迹点击 -> ${elemDesc}`,
               { id: targetElement.id, description: elemDesc },
               "click"
             );
@@ -279,6 +380,12 @@ export class AgentLoop {
             await this.cdp.clickElement(targetElement.rect, this.config.antiBotMode);
             stepCompleted = true;
           } else if (decision.actionType === "finish") {
+            this.log(
+              currentStep.subgoal,
+              "success",
+              decision.confidence,
+              `Jev 判断当前目标已达成，进入下一阶段。`
+            );
             stepCompleted = true;
             break;
           }
@@ -286,10 +393,19 @@ export class AgentLoop {
           // Settle delay after interaction
           await sleep(1500);
         }
+
+        // Check if step succeeded
+        if (!stepCompleted && !this.shouldStop) {
+          throw new Error(
+            `阶段目标 [${i + 1}] "${currentStep.subgoal}" 尝试 ${maxAttemptsPerStep} 次仍未找到匹配元素，任务终止。`
+          );
+        }
       }
 
-      this.status = "completed";
-      this.log("Task Finished", "success", 1.0, "All subgoals completed successfully!");
+      if (!this.shouldStop) {
+        this.status = "completed";
+        this.log("Task Finished", "success", 1.0, "全部阶段自动化任务已顺利完成！");
+      }
     } catch (err: any) {
       this.status = "failed";
       this.log("Execution Error", "error", 0.0, err.message || String(err));
