@@ -9,7 +9,7 @@ import {
 } from "../shared/types.js";
 import { sleep } from "./bezier-mouse.js";
 import { WorkflowRegistry, compileScriptToFunction } from "../workflows/workflow-registry.js";
-import { WorkflowCompiler } from "../workflows/compiler.js";
+import { WorkflowCompiler, StateTransitionTrace } from "../workflows/compiler.js";
 import {
   WorkflowContext,
   WorkflowFunction,
@@ -270,14 +270,7 @@ export class AgentLoop {
       `🤖 S2 Supervisor 状态机推进模式启动，任务目标: "${prompt}"`
     );
 
-    const stateTransitions: Array<{
-      step: number;
-      subgoal: string;
-      fromUrl: string;
-      actionType: string;
-      elementDescription: string;
-      toUrl?: string;
-    }> = [];
+    const stateTransitions: StateTransitionTrace[] = [];
 
     let step = 0;
     const maxSteps = 8;
@@ -384,51 +377,57 @@ export class AgentLoop {
       }
 
       // 5. Update state for next step
+      const previousUrl = currentPageState.url;
+      const previousTitle = currentPageState.title;
       currentPageState = await this.requestPageState(tabId);
       const toUrl = currentPageState.url;
+      const toTitle = currentPageState.title;
 
       const actionLabel = cleanClickedText ? `点击【${cleanClickedText}】` : `操作 ${desc}`;
+      const stateChangesSummary =
+        toUrl !== previousUrl
+          ? `URL 从 ${previousUrl} 跳转至 ${toUrl}`
+          : cleanClickedText
+            ? `点击【${cleanClickedText}】后触发页面状态更新`
+            : `执行 ${desc} 操作`;
+
       stateTransitions.push({
         step,
         subgoal: actionLabel,
-        fromUrl,
+        fromUrl: previousUrl,
+        fromTitle: previousTitle,
         actionType: decision.actionType,
         elementDescription: desc,
         clickedText: cleanClickedText || undefined,
-        toUrl: toUrl !== fromUrl ? toUrl : undefined,
+        toUrl,
+        toTitle,
+        stateChangesSummary,
       });
 
-      if (toUrl !== fromUrl) {
-        this.log("状态跃迁", "success", 1.0, `🔗 浏览器状态转移: ${fromUrl} ➔ ${toUrl}`);
+      if (toUrl !== previousUrl) {
+        this.log("状态跃迁", "success", 1.0, `🔗 浏览器状态转移: ${previousUrl} ➔ ${toUrl}`);
       }
     }
 
-    // Phase 2: Workflow Synthesis
+    // Phase 2: S2 Dynamic Workflow Synthesis
     if (stateTransitions.length > 0) {
-      const synthesizedScript = this.synthesizeWorkflowScript(prompt, stateTransitions);
-      const workflowDef: WorkflowDefinition = {
-        id: `workflow_${Date.now()}`,
-        meta: {
-          name: `recipe_${prompt.replace(/\s+/g, "_").slice(0, 20)}`,
-          description: prompt,
-          matchUrl: new URL(stateTransitions[0].fromUrl || "http://localhost").hostname,
-          phases: stateTransitions.map((t) => t.subgoal),
-        },
-        script: synthesizedScript,
-        fn: compileScriptToFunction(synthesizedScript),
-        isBuiltIn: false,
-        createdAt: Date.now(),
-      };
+      this.log("S2代码合成", "info", 1.0, `正在由 S2 认知大模型根据真实实机探索轨迹动态编写 Dynamic Workflow 脚本...`);
+
+      const workflowDef = await WorkflowCompiler.synthesizeFromTrace(
+        prompt,
+        stateTransitions,
+        this.config
+      );
 
       this.lastExecutedWorkflow = workflowDef;
-      this.activeWorkflowScript = synthesizedScript;
+      this.activeWorkflowScript = workflowDef.script;
       this.currentActiveLine = 1;
       this.status = "completed";
       this.log(
         "工作流合成",
         "success",
         1.0,
-        `✨ 状态机已将真实执行轨迹合成完整 Dynamic Workflow Recipe！可一键保存供下次直接秒级调用。`
+        `✨ S2 已根据实机状态机轨迹成功动态生成原生 Dynamic Workflow [${workflowDef.meta.name}]！可一键保存供下次秒级直接复用。`
       );
       this.broadcastState();
     } else {
@@ -436,51 +435,6 @@ export class AgentLoop {
       this.log("探索结束", "info", 1.0, "未检测到可执行的状态转移操作。");
       this.broadcastState();
     }
-  }
-
-  private synthesizeWorkflowScript(
-    prompt: string,
-    transitions: Array<{
-      step: number;
-      subgoal: string;
-      fromUrl: string;
-      actionType: string;
-      elementDescription: string;
-      clickedText?: string;
-      toUrl?: string;
-    }>
-  ): string {
-    const lines: string[] = [
-      `const { jev, successCheck, phase, log } = ctx;`,
-      ``,
-      `log("🚀 启动自动化工作流: ${prompt.replace(/"/g, '\\"')}");`,
-      ``,
-    ];
-
-    for (let i = 0; i < transitions.length; i++) {
-      const t = transitions[i];
-      const phaseName = t.clickedText || t.subgoal.replace(/^点击【?|】?$/g, "");
-      lines.push(`phase("${phaseName}");`);
-      lines.push(`log("正在执行: ${t.subgoal.replace(/"/g, '\\"')}...");`);
-      lines.push(`await jev("${t.subgoal.replace(/"/g, '\\"')}");`);
-
-      if (t.toUrl && t.toUrl !== t.fromUrl) {
-        try {
-          const parsedTo = new URL(t.toUrl);
-          lines.push(`await successCheck({ url: "${parsedTo.pathname}" }, { timeout: 3500 });`);
-        } catch {
-          lines.push(`await successCheck({ url: "${t.toUrl}" }, { timeout: 3500 });`);
-        }
-      } else if (t.clickedText) {
-        lines.push(`await successCheck({ disappeared: "${t.clickedText.replace(/"/g, '\\"')}" }, { timeout: 3000 });`);
-      } else {
-        lines.push(`await successCheck("${prompt.replace(/"/g, '\\"')}", { timeout: 2500 });`);
-      }
-      lines.push(``);
-    }
-
-    lines.push(`log("🎉 工作流全部步骤执行完毕，目标已圆满达成！");`);
-    return lines.join("\n");
   }
 
   /**

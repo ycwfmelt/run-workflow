@@ -37,6 +37,49 @@ The function receives a single parameter \`ctx\` providing:
 5. Output strictly valid, self-contained JavaScript code body for an \`async (ctx) => { ... }\` function.
 `;
 
+export interface StateTransitionTrace {
+  step: number;
+  subgoal: string;
+  fromUrl: string;
+  fromTitle?: string;
+  actionType: string;
+  elementDescription: string;
+  clickedText?: string;
+  toUrl?: string;
+  toTitle?: string;
+  stateChangesSummary?: string;
+}
+
+const S2_TRACE_SYNTHESIS_SYSTEM_PROMPT = `You are System Two (S2), the cognitive AI reasoning engine and Dynamic Workflow Synthesizer.
+You are given a user automation task and the ACTUAL SEQUENCE of browser state transitions (S_0 -> S_1 -> S_2 ...) verified and recorded by S2 Supervisor during live browser execution.
+
+Your mission is to compile these verified execution transitions into a clean, deterministic, robust JavaScript Dynamic Workflow Recipe (function body for async (ctx) => { ... }).
+
+### Runtime Environment Primitives (available on ctx):
+- await ctx.jev(subgoal: string): Drives S1 to visually locate the target element and execute CDP click/input. Use clear, concise instructions (e.g. await ctx.jev("点击【领取今日的登录奖励】")).
+- await ctx.successCheck(criteria: string | { url?: string; text?: string; selector?: string; disappeared?: string }, options?: { timeout?: number; pollInterval?: number }):
+  First-class state verification guard with fast-exit adaptive polling.
+  Dynamic workflows MUST use successCheck after actions to guarantee state transitions have taken place!
+  Choose the most appropriate and deterministic criteria for each step based on the observed state changes:
+  * If the step caused a page navigation or route change: use { url: "/target/path" }
+  * If the step caused a success message/status to appear: use { text: "success text" }
+  * If the step consumed or closed a button/modal: use { disappeared: "button text or selector" }
+  * If verifying overall semantic completion: use await ctx.successCheck("goal description")
+- ctx.phase(title: string): Updates the live UI timeline with the current phase.
+- ctx.log(message: string): Emits a user-facing log message.
+- await ctx.wait(ms: number): Pause if necessary.
+- await ctx.getPage(): Retrieves current page state.
+
+### Synthesis Requirements:
+1. Synthesize a clean, idiomatic JavaScript async function body.
+2. For each verified transition in the trace:
+   - Emit a meaningful ctx.phase("...")
+   - Call await ctx.jev("...") to perform the action
+   - Immediately follow with an appropriate await ctx.successCheck(...) guard tailored to the observed state transition!
+3. Handle any conditional branches or loops if the task is iterative.
+4. Output strictly valid JSON conforming to the schema (name, description, phases, script).
+`;
+
 const WorkflowZodSchema = z.object({
   name: z.string().describe("Short snake_case identifier, e.g. batch_contract_approval"),
   description: z.string().describe("Concise Chinese summary of what the workflow does"),
@@ -45,6 +88,169 @@ const WorkflowZodSchema = z.object({
 });
 
 export class WorkflowCompiler {
+  /**
+   * S2 Workflow Synthesis:
+   * Dynamically generates an executable JavaScript dynamic workflow script from
+   * real verified state machine transitions observed during live execution.
+   */
+  static async synthesizeFromTrace(
+    prompt: string,
+    transitions: StateTransitionTrace[],
+    config: AgentConfig
+  ): Promise<WorkflowDefinition> {
+    const cleanPrompt = prompt.trim();
+    const endpoint = (config.systemTwoEndpoint || "http://localhost:11434/v1").replace(/\/+$/, "");
+    const modelName = config.systemTwoModel || "deepseek-v4.1-flash:cloud";
+    const apiKey = config.systemTwoApiKey || config.typesafeApiKey || "ollama";
+
+    const tracePrompt = `
+【用户任务目标】: ${cleanPrompt}
+
+【S2 Supervisor 实机探索记录的真实状态转移轨迹】:
+${transitions
+  .map(
+    (t, idx) => `
+步骤 ${t.step || idx + 1}:
+- 起始状态 S_${idx}: URL "${t.fromUrl}" (${t.fromTitle || "页面"})
+- 执行动作: ${t.actionType} on ${t.elementDescription} (目标文案: "${t.clickedText || t.subgoal}")
+- 转移后状态 S_${idx + 1}: URL "${t.toUrl || t.fromUrl}" (${t.toTitle || "页面"})
+- 观测到的状态变更: ${
+      t.stateChangesSummary ||
+      (t.toUrl && t.toUrl !== t.fromUrl
+        ? `URL 从 ${t.fromUrl} 跳转至 ${t.toUrl}`
+        : `点击【${t.clickedText || t.subgoal}】触发页面就地更新`)
+    }
+`
+  )
+  .join("\n")}
+`;
+
+    // 1. Attempt AI SDK structured generation with S2 LLM
+    try {
+      const s2Client = createOpenAI({
+        baseURL: endpoint,
+        apiKey,
+      });
+
+      const { object } = await generateObject({
+        model: s2Client(modelName),
+        schema: WorkflowZodSchema,
+        system: S2_TRACE_SYNTHESIS_SYSTEM_PROMPT,
+        prompt: tracePrompt,
+        temperature: 0.1,
+      });
+
+      if (object && object.script) {
+        const fn = compileScriptToFunction(object.script);
+        return {
+          id: `workflow_${Date.now()}`,
+          meta: {
+            name: object.name || `recipe_${cleanPrompt.replace(/\s+/g, "_").slice(0, 20)}`,
+            description: object.description || cleanPrompt,
+            matchUrl: new URL(transitions[0]?.fromUrl || "http://localhost").hostname,
+            phases: object.phases || transitions.map((t) => t.subgoal),
+          },
+          script: object.script,
+          fn,
+          isBuiltIn: false,
+          createdAt: Date.now(),
+        };
+      }
+    } catch (llmErr: any) {
+      console.warn("[Ang] S2 LLM generateObject notice, trying generateText:", llmErr.message);
+
+      try {
+        const s2Client = createOpenAI({
+          baseURL: endpoint,
+          apiKey,
+        });
+
+        const { text } = await generateText({
+          model: s2Client(modelName),
+          system: `${S2_TRACE_SYNTHESIS_SYSTEM_PROMPT}\nReturn ONLY the pure JavaScript code body inside \`\`\`javascript ... \`\`\` code fence.`,
+          prompt: tracePrompt,
+          temperature: 0.1,
+        });
+
+        const match = text.match(/```(?:javascript|js)?\s*([\s\S]+?)```/i);
+        const scriptCode = match ? match[1].trim() : text.trim();
+
+        if (scriptCode && (scriptCode.includes("ctx.jev") || scriptCode.includes("ctx.agent"))) {
+          const fn = compileScriptToFunction(scriptCode);
+          return {
+            id: `workflow_${Date.now()}`,
+            meta: {
+              name: `recipe_${cleanPrompt.replace(/\s+/g, "_").slice(0, 20)}`,
+              description: cleanPrompt,
+              matchUrl: new URL(transitions[0]?.fromUrl || "http://localhost").hostname,
+              phases: transitions.map((t) => t.subgoal),
+            },
+            script: scriptCode,
+            fn,
+            isBuiltIn: false,
+            createdAt: Date.now(),
+          };
+        }
+      } catch (textErr: any) {
+        console.warn("[Ang] S2 LLM generateText fallback notice:", textErr.message);
+      }
+    }
+
+    // Baseline fallback if S2 LLM is completely offline
+    return this.createTraceFallbackWorkflow(cleanPrompt, transitions);
+  }
+
+  private static createTraceFallbackWorkflow(
+    prompt: string,
+    transitions: StateTransitionTrace[]
+  ): WorkflowDefinition {
+    const lines: string[] = [
+      `const { jev, successCheck, phase, log } = ctx;`,
+      ``,
+      `log("🚀 启动自动化工作流: ${prompt.replace(/"/g, '\\"')}");`,
+      ``,
+    ];
+
+    for (let i = 0; i < transitions.length; i++) {
+      const t = transitions[i];
+      const phaseName = t.clickedText || t.subgoal.replace(/^点击【?|】?$/g, "");
+      lines.push(`phase("${phaseName}");`);
+      lines.push(`log("正在执行: ${t.subgoal.replace(/"/g, '\\"')}...");`);
+      lines.push(`await jev("${t.subgoal.replace(/"/g, '\\"')}");`);
+
+      if (t.toUrl && t.toUrl !== t.fromUrl) {
+        try {
+          const parsedTo = new URL(t.toUrl);
+          lines.push(`await successCheck({ url: "${parsedTo.pathname}" }, { timeout: 3500 });`);
+        } catch {
+          lines.push(`await successCheck({ url: "${t.toUrl}" }, { timeout: 3500 });`);
+        }
+      } else if (t.clickedText) {
+        lines.push(`await successCheck({ disappeared: "${t.clickedText.replace(/"/g, '\\"')}" }, { timeout: 3000 });`);
+      } else {
+        lines.push(`await successCheck("${prompt.replace(/"/g, '\\"')}", { timeout: 2500 });`);
+      }
+      lines.push(``);
+    }
+
+    lines.push(`log("🎉 工作流全部步骤执行完毕，目标已圆满达成！");`);
+    const script = lines.join("\n");
+    const fn = compileScriptToFunction(script);
+
+    return {
+      id: `workflow_${Date.now()}`,
+      meta: {
+        name: `recipe_${prompt.replace(/\s+/g, "_").slice(0, 20)}`,
+        description: prompt,
+        matchUrl: new URL(transitions[0]?.fromUrl || "http://localhost").hostname,
+        phases: transitions.map((t) => t.subgoal),
+      },
+      script,
+      fn,
+      isBuiltIn: false,
+      createdAt: Date.now(),
+    };
+  }
   /**
    * Compiles user prompt and current DOM context into an executable Dynamic Workflow
    * using Vercel AI SDK + Ollama (deepseek-v4.1-flash:cloud).
