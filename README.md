@@ -106,7 +106,7 @@ The output will be generated in the `dist/` directory.
 1. Open Chrome and navigate to `chrome://extensions/`.
 2. Enable **Developer mode** in the top right corner.
 3. Click **Load unpacked** and select the `dist/` directory inside this repository.
-4. Pin the **Ang** extension icon to your toolbar.
+4. Pin the **RunWorkflow** extension icon to your toolbar.
 
 ### 4. Configure Credentials
 1. Click the extension icon to open the Sidepanel, then click the **⚙️ (Settings)** icon.
@@ -127,9 +127,12 @@ run-workflow/
 │   ├── background/
 │   │   ├── index.ts         # Service Worker & messaging dispatcher
 │   │   ├── agent-loop.ts    # Central task execution coordinator & V8 line tracer
+│   │   ├── offscreen-runner.ts # Offscreen document manager & sandbox bridge
 │   │   ├── cdp-client.ts    # Hardware input layer (CDP mouse/keyboard dispatch)
 │   │   ├── bezier-mouse.ts  # Human trajectory & physical anti-bot model
 │   │   └── typesafe-service.ts # TypeSafe Jev API client
+│   ├── offscreen/           # MV3 offscreen host embedding isolated sandbox
+│   ├── sandbox/             # Relaxed CSP sandbox for dynamic JS execution & tracing
 │   ├── workflows/           # Dynamic Workflow Engine
 │   │   ├── types.ts         # WorkflowContext primitives & definitions
 │   │   ├── compiler.ts      # Vercel AI SDK + DeepSeek workflow compiler
