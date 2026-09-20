@@ -19,10 +19,19 @@ export type SuccessCheckCriteria =
   | string
   | { url?: string; text?: string; selector?: string; disappeared?: string };
 
+export interface PhaseCheckpoint {
+  phase: string;
+  phaseIndex: number;
+  url: string;
+  title: string;
+  timestamp: number;
+}
+
 export interface SuccessCheckOptions {
   timeout?: number;
   pollInterval?: number;
   strict?: boolean;
+  autoHeal?: boolean;
 }
 
 export interface SuccessCheckResult {
@@ -31,6 +40,7 @@ export interface SuccessCheckResult {
   reason?: string;
   elapsedMs?: number;
   hasChanged?: boolean;
+  isHealed?: boolean;
 }
 
 export interface WorkflowContext {
@@ -65,9 +75,29 @@ export interface WorkflowContext {
   agent: (prompt: string, options?: any) => Promise<any>;
 
   /**
-   * Declare current workflow phase (updates Sidepanel live timeline view)
+   * Declare current workflow phase (records checkpoint and updates Sidepanel live timeline view)
    */
   phase: (title: string) => void;
+
+  /**
+   * Current active phase name
+   */
+  currentPhase?: string;
+
+  /**
+   * Retrieve the latest recorded phase checkpoint
+   */
+  getCheckpoint: () => Promise<PhaseCheckpoint | null>;
+
+  /**
+   * Rollback browser state to the current or target phase checkpoint
+   */
+  rollback: (targetCheckpoint?: PhaseCheckpoint) => Promise<boolean>;
+
+  /**
+   * Autonomous Jev self-healing: realigns state, recovers from unexpected paths/modals, or rolls back
+   */
+  heal: (subgoal?: string, options?: any) => Promise<boolean>;
 
   /**
    * Log messages to Sidepanel trace timeline

@@ -182,6 +182,18 @@ window.addEventListener("message", async (event) => {
           const line = getCallerLine();
           sendCtxCall(executionId, "step", [label], line, true);
         },
+        getCheckpoint: async () => {
+          const line = getCallerLine();
+          return await sendCtxCall(executionId, "getCheckpoint", [], line);
+        },
+        rollback: async (targetCheckpoint?: any) => {
+          const line = getCallerLine();
+          return await sendCtxCall(executionId, "rollback", [targetCheckpoint], line);
+        },
+        heal: async (subgoal?: string, options?: any) => {
+          const line = getCallerLine();
+          return await sendCtxCall(executionId, "heal", [subgoal, options], line);
+        },
         args: args || {},
       };
 
