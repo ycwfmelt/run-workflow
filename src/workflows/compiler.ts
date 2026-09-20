@@ -81,7 +81,7 @@ ${transitions
       const s2Client = createOpenAI({ baseURL: endpoint, apiKey });
 
       const { object } = await generateObject({
-        model: s2Client(modelName),
+        model: s2Client.chat(modelName),
         schema: WorkflowZodSchema,
         system: S2_TRACE_SYNTHESIS_SYSTEM_PROMPT,
         prompt: tracePrompt,
@@ -109,7 +109,7 @@ ${transitions
       try {
         const s2Client = createOpenAI({ baseURL: endpoint, apiKey });
         const { text } = await generateText({
-          model: s2Client(modelName),
+          model: s2Client.chat(modelName),
           system: `${S2_TRACE_SYNTHESIS_SYSTEM_PROMPT}\nReturn ONLY the pure JavaScript code body inside \`\`\`javascript ... \`\`\` code fence.`,
           prompt: tracePrompt,
           temperature: 0.1,

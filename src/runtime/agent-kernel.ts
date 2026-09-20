@@ -58,7 +58,7 @@ export class AgentKernel {
     hooks.onLog?.("Supervisor", "info", `🤖 S2 模型原生自主循环启动: "${prompt}"`);
 
     await generateText({
-      model: s2Client(modelName),
+      model: s2Client.chat(modelName),
       system: `You are an autonomous web automation supervisor. Your task: "${prompt}".
 Observe the interactive elements, call tools to progress state until the overall goal is fully achieved.
 When the goal is confirmed complete, call the finish tool.`,

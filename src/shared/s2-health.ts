@@ -227,6 +227,23 @@ export async function diagnoseS2Error(
 
   // Model-level or generation-level error
   const rawMsg = err?.message || String(err);
+
+  if (rawMsg.includes("item_reference")) {
+    return (
+      `【S2 协议不匹配】${rawMsg}\n` +
+      `真实原因：端点服务不识别 OpenAI Responses API 的 item_reference 特性。\n` +
+      `解决方式：已强制使用通用 Chat Completions 协议 (/v1/chat/completions) 进行交互。`
+    );
+  }
+
+  if (rawMsg.toLowerCase().includes("not found")) {
+    return (
+      `【S2 模型未安装】${rawMsg}\n` +
+      `端点: ${endpoint} | 配置模型: ${model}\n` +
+      `解决建议：请在终端执行 'ollama pull ${model}' 拉取模型文件。`
+    );
+  }
+
   return (
     `【S2 模型调用异常】${rawMsg}\n` +
     `端点: ${endpoint} | 配置模型: ${model}\n` +
