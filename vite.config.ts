@@ -47,6 +47,8 @@ export default defineConfig({
       input: {
         sidepanel: resolve(import.meta.dirname, "src/sidepanel/index.html"),
         options: resolve(import.meta.dirname, "src/options/index.html"),
+        offscreen: resolve(import.meta.dirname, "src/offscreen/index.html"),
+        sandbox: resolve(import.meta.dirname, "src/sandbox/sandbox.html"),
         background: resolve(import.meta.dirname, "src/background/index.ts"),
         content: resolve(import.meta.dirname, "src/content/index.ts"),
       },

@@ -330,6 +330,20 @@ export class AgentLoop {
     fn: WorkflowFunction,
     args?: Record<string, any>
   ): Promise<any> {
+    const updateLine = (lineNum?: number) => {
+      if (!lineNum) return;
+      if (this.currentActiveLine !== lineNum) {
+        this.currentActiveLine = lineNum;
+        chrome.runtime
+          .sendMessage({
+            type: "WORKFLOW_LINE_UPDATE",
+            line: lineNum,
+            script: this.activeWorkflowScript,
+          } as MessagePayload)
+          .catch(() => {});
+      }
+    };
+
     const traceLine = () => {
       try {
         const stack = new Error().stack;
@@ -337,22 +351,13 @@ export class AgentLoop {
         const match = stack.match(/workflow\.js:(\d+):(\d+)/);
         if (match) {
           const rawLine = parseInt(match[1], 10);
-          const lineNum = Math.max(1, rawLine - 2);
-          if (this.currentActiveLine !== lineNum) {
-            this.currentActiveLine = lineNum;
-            chrome.runtime
-              .sendMessage({
-                type: "WORKFLOW_LINE_UPDATE",
-                line: lineNum,
-                script: this.activeWorkflowScript,
-              } as MessagePayload)
-              .catch(() => {});
-          }
+          updateLine(Math.max(1, rawLine - 2));
         }
       } catch {}
     };
 
     const ctx: WorkflowContext = {
+      ...({ __onLineUpdate: updateLine } as any),
       jev: async (subgoal, options) => {
         traceLine();
         if (this.shouldStop) throw new Error("Workflow stopped by user");

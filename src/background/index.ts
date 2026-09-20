@@ -2,6 +2,7 @@ import { AgentLoop } from "./agent-loop.js";
 import { loadConfig } from "../shared/storage.js";
 import { MessagePayload } from "../shared/types.js";
 import { WorkflowRegistry } from "../workflows/workflow-registry.js";
+import { OffscreenRunner } from "./offscreen-runner.js";
 
 let agentLoop: AgentLoop | null = null;
 
@@ -40,8 +41,15 @@ chrome.action.onClicked.addListener(async (tab) => {
   }
 });
 
-// Message listener from Side Panel / Content script
+// Message listener from Side Panel / Content script / Offscreen document
 chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
+  if (message.type && message.type.startsWith("OFFSCREEN_")) {
+    OffscreenRunner.handleMessage(message)
+      .then((res) => sendResponse(res))
+      .catch((err) => sendResponse({ success: false, error: err?.message || String(err) }));
+    return true;
+  }
+
   if (!agentLoop) {
     sendResponse({ error: "Agent not ready" });
     return true;
@@ -49,6 +57,10 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
 
   const handleAsync = async () => {
     switch (message.type) {
+      case "VALIDATE_WORKFLOW_SCRIPT": {
+        const result = await OffscreenRunner.validateScript(message.script);
+        return result;
+      }
       case "START_TASK": {
         // Query active tab
         const [activeTab] = await chrome.tabs.query({

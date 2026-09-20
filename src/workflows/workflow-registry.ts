@@ -7,16 +7,25 @@ import {
 const STORAGE_KEY = "ang_custom_workflows";
 const LEGACY_STORAGE_KEY = "jevpilot_custom_workflows";
 
-const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+import { OffscreenRunner } from "../background/offscreen-runner.js";
 
 export function compileScriptToFunction(script: string): WorkflowFunction {
-  let clean = script.trim().replace(/^```(?:javascript|js|typescript|ts)?\s*/i, "").replace(/\s*```$/, "").trim();
-  let wrapped = clean;
-  if (/(?:export\s+default\s+)?async\s+function(?:\s+\w+)?\s*\(\s*ctx\s*\)\s*\{/i.test(clean)) {
-    wrapped = `return (${clean.replace(/^export\s+default\s+/i, "")})(ctx);`;
-  }
-  const fullCode = `${wrapped}\n//# sourceURL=workflow.js`;
-  return new AsyncFunction("ctx", fullCode) as WorkflowFunction;
+  return async (ctx: WorkflowContext) => {
+    return await OffscreenRunner.runScript(
+      script,
+      ctx.args,
+      async (method: string, args: any[], line?: number) => {
+        if (line && (ctx as any).__onLineUpdate) {
+          (ctx as any).__onLineUpdate(line);
+        }
+        const fn = (ctx as any)[method];
+        if (typeof fn === "function") {
+          return await fn.apply(ctx, args);
+        }
+        throw new Error(`Context method "${method}" is not implemented`);
+      }
+    );
+  };
 }
 
 /**

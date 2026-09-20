@@ -1,15 +1,16 @@
 {
   "manifest_version": 3,
-  "name": "Ang",
+  "name": "RunWorkflow",
   "version": "1.0.0",
-  "description": "Intelligent browser automation with TypeSafe System One and dynamic workflows",
+  "description": "Code-driven AI browser automation for Chrome. Compiles natural language into native JavaScript workflows with sub-100ms visual actions & live visual feedback.",
   "permissions": [
     "debugger",
     "activeTab",
     "tabs",
     "scripting",
     "storage",
-    "sidePanel"
+    "sidePanel",
+    "offscreen"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -34,8 +35,11 @@
     "page": "src/options/index.html",
     "open_in_tab": true
   },
+  "sandbox": {
+    "pages": ["src/sandbox/sandbox.html"]
+  },
   "action": {
-    "default_title": "Open Ang Sidepanel"
+    "default_title": "Open RunWorkflow Sidepanel"
   },
   "icons": {
     "16": "icons/icon16.png",

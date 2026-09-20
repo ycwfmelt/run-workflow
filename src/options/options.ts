@@ -2,7 +2,6 @@ import { loadConfig, saveConfig } from "../shared/storage.js";
 import {
   WorkflowRegistry,
   matchUrlRule,
-  compileScriptToFunction,
 } from "../workflows/workflow-registry.js";
 import { WorkflowDefinition } from "../workflows/types.js";
 
@@ -182,12 +181,20 @@ function renderWorkflowList() {
       const newMatch = matchInput.value.trim() || "*";
       const newDesc = descInput.value.trim() || wf.meta.description;
 
-      // Validate JS function syntax
+      // Validate JS function syntax via sandbox
+      saveWfBtn.textContent = "正在校验...";
       try {
-        compileScriptToFunction(newScript);
-      } catch (syntaxErr: any) {
-        alert(`JavaScript 语法错误，无法编译:\n${syntaxErr.message}`);
-        return;
+        const valRes = await chrome.runtime.sendMessage({
+          type: "VALIDATE_WORKFLOW_SCRIPT",
+          script: newScript,
+        });
+        if (valRes && valRes.valid === false) {
+          saveWfBtn.textContent = "💾 保存修改";
+          alert(`JavaScript 语法错误，无法编译:\n${valRes.error}`);
+          return;
+        }
+      } catch (valErr: any) {
+        console.warn("Validation service notice:", valErr);
       }
 
       saveWfBtn.textContent = "正在保存...";
