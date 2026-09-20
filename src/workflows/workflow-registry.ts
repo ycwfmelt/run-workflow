@@ -11,10 +11,12 @@ const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
 export function compileScriptToFunction(script: string): WorkflowFunction {
   let clean = script.trim().replace(/^```(?:javascript|js|typescript|ts)?\s*/i, "").replace(/\s*```$/, "").trim();
+  let wrapped = clean;
   if (/(?:export\s+default\s+)?async\s+function(?:\s+\w+)?\s*\(\s*ctx\s*\)\s*\{/i.test(clean)) {
-    clean = `return (${clean.replace(/^export\s+default\s+/i, "")})(ctx);`;
+    wrapped = `return (${clean.replace(/^export\s+default\s+/i, "")})(ctx);`;
   }
-  return new AsyncFunction("ctx", clean) as WorkflowFunction;
+  const fullCode = `${wrapped}\n//# sourceURL=workflow.js`;
+  return new AsyncFunction("ctx", fullCode) as WorkflowFunction;
 }
 
 /**

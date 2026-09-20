@@ -30,6 +30,8 @@ export class AgentLoop {
   private shouldStop: boolean = false;
 
   private lastExecutedWorkflow: WorkflowDefinition | null = null;
+  private activeWorkflowScript?: string;
+  private currentActiveLine?: number;
 
   constructor(config: AgentConfig) {
     this.config = config;
@@ -57,6 +59,14 @@ export class AgentLoop {
     return this.lastExecutedWorkflow;
   }
 
+  getActiveWorkflowScript(): string | undefined {
+    return this.activeWorkflowScript;
+  }
+
+  getCurrentActiveLine(): number | undefined {
+    return this.currentActiveLine;
+  }
+
   async saveLastExecutedWorkflow(): Promise<{ success: boolean; message: string }> {
     const wf = this.lastExecutedWorkflow;
     if (!wf || !wf.script) {
@@ -82,6 +92,8 @@ export class AgentLoop {
         recentLogs: this.logs.slice(-25),
         canSaveWorkflow: !!(this.status === "completed" && this.lastExecutedWorkflow && this.lastExecutedWorkflow.script),
         workflowName: this.lastExecutedWorkflow?.meta?.description || this.lastExecutedWorkflow?.meta?.name,
+        activeWorkflowScript: this.activeWorkflowScript,
+        activeLine: this.currentActiveLine,
       } as MessagePayload)
       .catch(() => {});
   }
@@ -125,6 +137,7 @@ export class AgentLoop {
     this.shouldStop = true;
     this.status = "idle";
     this.cdp?.hideVirtualMouse();
+    this.currentActiveLine = undefined;
     this.broadcastState();
   }
 
@@ -150,17 +163,14 @@ export class AgentLoop {
           chrome.tabs.sendMessage(tabId, { type: "EXTRACT_DOM" }, (res) => {
             if (chrome.runtime.lastError) {
               reject(new Error(chrome.runtime.lastError.message));
-            } else if (!res || !res.state) {
-              reject(new Error("Content script returned empty DOM state"));
+            } else if (res && res.state) {
+              resolve(res.state);
             } else {
-              resolve(res);
+              reject(new Error("提取页面状态失败"));
             }
           });
         });
-
-        if (response && response.state) {
-          return response.state as PageState;
-        }
+        return response as PageState;
       } catch (err: any) {
         lastError = err;
         await this.ensureContentScript(tabId);
@@ -168,55 +178,54 @@ export class AgentLoop {
       }
     }
 
-    throw new Error(
-      `无法与标签页 DOM 建立通信 (${lastError?.message || "未知错误"})。请刷新页面后重试。`
-    );
+    throw new Error(`无法获取页面状态 (已重试 ${maxRetries} 次): ${lastError?.message || ""}`);
   }
 
   /**
-   * Main Task Entrypoint
-   * Uses Vercel AI SDK + Ollama (deepseek-v4.1-flash:cloud) to compile prompt
-   * into an executable JavaScript Dynamic Workflow, then runs it natively.
+   * Start executing a task by natural language prompt
    */
   async startTask(tabId: number, prompt: string): Promise<void> {
     this.tabId = tabId;
     this.currentTask = prompt;
     this.logs = [];
+    this.currentStepIndex = 0;
     this.isPaused = false;
     this.shouldStop = false;
-    this.status = "planning";
-    this.broadcastState();
+    this.lastExecutedWorkflow = null;
+    this.activeWorkflowScript = undefined;
+    this.currentActiveLine = undefined;
 
     try {
-      // 1. Ensure DOM content script is active
-      await this.ensureContentScript(tabId);
-
-      // 2. Attach CDP for trusted hardware events
+      // 1. Ensure CDP is attached
       this.cdp = new CDPClient(tabId);
       await this.cdp.attach();
 
-      // 3. Inspect live page state
+      // 2. Ensure content script is injected
+      await this.ensureContentScript(tabId);
+
+      // 3. Extract DOM & PageState
+      this.status = "planning";
+      this.broadcastState();
+      this.log("页面理解", "success", 1.0, "正在提取页面 DOM 与可视可交互元素...");
+
       const pageState = await this.requestPageState(tabId);
 
-      // 4. Check for pre-existing matching workflow recipe
+      // 4. Check if there is an existing Recipe matching this URL & intent
       const matchingWorkflows = await WorkflowRegistry.getMatchingWorkflows(pageState.url);
-      const exactMatch = matchingWorkflows.find(
-        (w) =>
-          w.meta.name === prompt ||
-          w.meta.description === prompt ||
-          (prompt.includes("审批") && w.id === "crm_batch_approval" && /crm-batch\.example\.com/.test(pageState.url))
+      const existingRecipe = matchingWorkflows.find(
+        (w) => w.meta.description === prompt || prompt.includes(w.meta.name)
       );
 
       let workflowToRun: WorkflowDefinition;
 
-      if (exactMatch && exactMatch.fn) {
+      if (existingRecipe && existingRecipe.fn) {
         this.log(
-          "工作流命中",
+          "工作流复用",
           "success",
           1.0,
-          `✨ 命中已保存的工作流 Recipe [${exactMatch.meta.name}] ("${exactMatch.meta.description}")，直接启动原生 JS 执行器！`
+          `⚡ 命中了已保存的动态工作流 Recipe [${existingRecipe.meta.name}]，直接复用原生执行！`
         );
-        workflowToRun = exactMatch;
+        workflowToRun = existingRecipe;
       } else {
         this.log(
           "S2 代码生成",
@@ -234,6 +243,8 @@ export class AgentLoop {
       }
 
       this.lastExecutedWorkflow = workflowToRun;
+      this.activeWorkflowScript = workflowToRun.script;
+      this.currentActiveLine = 1;
       this.status = "running";
       this.broadcastState();
 
@@ -247,6 +258,7 @@ export class AgentLoop {
       this.status = "failed";
       this.log("Execution Error", "error", 0.0, err.message || String(err));
     } finally {
+      this.currentActiveLine = undefined;
       if (this.cdp) {
         await this.cdp.detach();
         this.cdp = null;
@@ -274,6 +286,8 @@ export class AgentLoop {
     this.tabId = tabId;
     this.currentTask = wf.meta.description || wf.meta.name;
     this.lastExecutedWorkflow = wf;
+    this.activeWorkflowScript = wf.script;
+    this.currentActiveLine = 1;
     this.logs = [];
     this.isPaused = false;
     this.shouldStop = false;
@@ -294,6 +308,7 @@ export class AgentLoop {
       this.status = "failed";
       this.log("Execution Error", "error", 0.0, err.message || String(err));
     } finally {
+      this.currentActiveLine = undefined;
       if (this.cdp) {
         await this.cdp.detach();
         this.cdp = null;
@@ -308,15 +323,38 @@ export class AgentLoop {
   /**
    * Universal Dynamic Workflow Runtime Executor
    * Injects Claude Code & Pi Dynamic Workflow primitives:
-   * jev(), agent(), phase(), log(), getPage(), wait(), scroll()
+   * jev(), agent(), phase(), log(), getPage(), wait(), scroll(), step()
    */
   async executeWorkflowFunction(
     tabId: number,
     fn: WorkflowFunction,
     args?: Record<string, any>
   ): Promise<any> {
+    const traceLine = () => {
+      try {
+        const stack = new Error().stack;
+        if (!stack) return;
+        const match = stack.match(/workflow\.js:(\d+):(\d+)/);
+        if (match) {
+          const rawLine = parseInt(match[1], 10);
+          const lineNum = Math.max(1, rawLine - 2);
+          if (this.currentActiveLine !== lineNum) {
+            this.currentActiveLine = lineNum;
+            chrome.runtime
+              .sendMessage({
+                type: "WORKFLOW_LINE_UPDATE",
+                line: lineNum,
+                script: this.activeWorkflowScript,
+              } as MessagePayload)
+              .catch(() => {});
+          }
+        }
+      } catch {}
+    };
+
     const ctx: WorkflowContext = {
       jev: async (subgoal, options) => {
+        traceLine();
         if (this.shouldStop) throw new Error("Workflow stopped by user");
         while (this.isPaused && !this.shouldStop) await sleep(500);
 
@@ -380,22 +418,31 @@ export class AgentLoop {
         return decision;
       },
       agent: async (prompt, options) => {
+        traceLine();
         return ctx.jev(prompt, options);
       },
       phase: (title) => {
+        traceLine();
         this.log(title, "success", 1.0, `[Phase 阶段] -> ${title}`);
       },
       log: (message) => {
+        traceLine();
         this.log("Trace", "success", 1.0, message);
       },
       getPage: async () => {
+        traceLine();
         return this.requestPageState(tabId);
       },
       scroll: async (deltaY) => {
+        traceLine();
         if (this.cdp) await this.cdp.scroll(deltaY);
       },
       wait: async (ms) => {
+        traceLine();
         await sleep(ms);
+      },
+      step: (_label) => {
+        traceLine();
       },
       args,
     };

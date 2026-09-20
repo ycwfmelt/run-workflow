@@ -57,6 +57,11 @@ export interface WorkflowContext {
   wait: (ms: number) => Promise<void>;
 
   /**
+   * Explicitly highlight a step/line in live code stepper
+   */
+  step?: (label?: string) => void;
+
+  /**
    * Optional runtime arguments passed to workflow
    */
   args?: Record<string, any>;

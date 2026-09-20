@@ -160,6 +160,11 @@ export type MessagePayload =
   | { type: "SAVE_WORKFLOW"; workflow: any }
   | { type: "DELETE_WORKFLOW"; id: string }
   | {
+      type: "WORKFLOW_LINE_UPDATE";
+      line: number;
+      script?: string;
+    }
+  | {
       type: "AGENT_STATE_UPDATE";
       status: TaskStatus;
       currentTask?: string;
@@ -168,5 +173,7 @@ export type MessagePayload =
       currentAction?: AgentAction;
       canSaveWorkflow?: boolean;
       workflowName?: string;
+      activeWorkflowScript?: string;
+      activeLine?: number;
     };
 

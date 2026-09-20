@@ -58,6 +58,76 @@ closeSidePanelBtn?.addEventListener("click", () => {
 
 manageWorkflowsBtn?.addEventListener("click", openOptions);
 
+// Live Code Stepper elements
+const codeStepperCard = document.getElementById("codeStepperCard") as HTMLElement;
+const activeLineBadge = document.getElementById("activeLineBadge") as HTMLElement;
+const toggleStepperCodeBtn = document.getElementById("toggleStepperCodeBtn") as HTMLButtonElement;
+const codeStepperContent = document.getElementById("codeStepperContent") as HTMLElement;
+const codeLinesContainer = document.getElementById("codeLinesContainer") as HTMLElement;
+
+let currentStepperScript: string | null = null;
+let currentHighlightedLine: number | null = null;
+
+function renderStepperScript(script: string) {
+  if (!script) return;
+  if (currentStepperScript === script) return;
+  currentStepperScript = script;
+  codeLinesContainer.innerHTML = "";
+
+  const lines = script.split("\n");
+  lines.forEach((line, idx) => {
+    const lineNum = idx + 1;
+    const row = document.createElement("div");
+    row.className = "code-line-row";
+    row.id = `stepper-line-${lineNum}`;
+
+    const numEl = document.createElement("span");
+    numEl.className = "code-line-num";
+    numEl.textContent = String(lineNum);
+
+    const textEl = document.createElement("span");
+    textEl.className = "code-line-text";
+    textEl.textContent = line || " ";
+
+    row.appendChild(numEl);
+    row.appendChild(textEl);
+    codeLinesContainer.appendChild(row);
+  });
+
+  codeStepperCard.style.display = "block";
+}
+
+function highlightStepperLine(lineNum: number) {
+  if (!lineNum || lineNum < 1) return;
+  if (currentHighlightedLine === lineNum) return;
+
+  if (currentHighlightedLine) {
+    const prev = document.getElementById(`stepper-line-${currentHighlightedLine}`);
+    prev?.classList.remove("active-line");
+  }
+
+  currentHighlightedLine = lineNum;
+  if (activeLineBadge) {
+    activeLineBadge.textContent = `Line ${lineNum}`;
+  }
+
+  const curr = document.getElementById(`stepper-line-${lineNum}`);
+  if (curr) {
+    curr.classList.add("active-line");
+    curr.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+}
+
+toggleStepperCodeBtn?.addEventListener("click", () => {
+  if (codeStepperContent.style.display === "none") {
+    codeStepperContent.style.display = "block";
+    toggleStepperCodeBtn.textContent = "收起 ⏶";
+  } else {
+    codeStepperContent.style.display = "none";
+    toggleStepperCodeBtn.textContent = "展开 ⏷";
+  }
+});
+
 function openOptions() {
   if (chrome.runtime.openOptionsPage) {
     chrome.runtime.openOptionsPage();
@@ -92,6 +162,12 @@ async function init() {
       updateUIStatus(response.status);
       if (response.logs) {
         renderLogs(response.logs);
+      }
+      if (response.activeWorkflowScript) {
+        renderStepperScript(response.activeWorkflowScript);
+      }
+      if (response.activeLine) {
+        highlightStepperLine(response.activeLine);
       }
     }
   });
@@ -303,13 +379,34 @@ function escapeHtml(str: string): string {
 
 // Listen for broadcast from background
 chrome.runtime.onMessage.addListener((message: MessagePayload) => {
-  if (message.type === "AGENT_STATE_UPDATE") {
+  if (message.type === "WORKFLOW_LINE_UPDATE") {
+    if (message.script) {
+      renderStepperScript(message.script);
+    }
+    if (message.line) {
+      highlightStepperLine(message.line);
+    }
+  } else if (message.type === "AGENT_STATE_UPDATE") {
     updateUIStatus(message.status);
     if (message.currentStep !== undefined) {
       stepCounter.textContent = `Step: ${message.currentStep}`;
     }
     if (message.recentLogs) {
       renderLogs(message.recentLogs);
+    }
+    if (message.activeWorkflowScript) {
+      renderStepperScript(message.activeWorkflowScript);
+    }
+    if (message.activeLine) {
+      highlightStepperLine(message.activeLine);
+    }
+    if (message.status === "idle") {
+      if (currentHighlightedLine) {
+        const prev = document.getElementById(`stepper-line-${currentHighlightedLine}`);
+        prev?.classList.remove("active-line");
+        currentHighlightedLine = null;
+      }
+      if (activeLineBadge) activeLineBadge.textContent = "Line --";
     }
     if (message.canSaveWorkflow) {
       saveWorkflowBanner.style.display = "block";

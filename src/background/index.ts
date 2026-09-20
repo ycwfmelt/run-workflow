@@ -117,6 +117,8 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
         return {
           status: agentLoop!.getStatus(),
           logs: agentLoop!.getLogs(),
+          activeWorkflowScript: agentLoop!.getActiveWorkflowScript(),
+          activeLine: agentLoop!.getCurrentActiveLine(),
         };
       }
       case "DIAGNOSE_PAGE": {
