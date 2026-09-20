@@ -73,7 +73,14 @@ export interface StepLog {
 export interface AgentConfig {
   typesafeApiKey: string;
   typesafeModel: string;
-  systemTwoProvider: "openai" | "gemini" | "custom" | "none";
+  systemTwoProvider:
+    | "none"
+    | "deepseek"
+    | "openai"
+    | "gemini"
+    | "siliconflow"
+    | "ollama"
+    | "custom";
   systemTwoApiKey?: string;
   systemTwoEndpoint?: string;
   systemTwoModel?: string;

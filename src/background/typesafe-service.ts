@@ -99,7 +99,7 @@ export class TypeSafeService {
         type: "choice",
         instructions:
           "What action should be performed on the chosen element to progress towards `task.current_subgoal`?",
-        options: {
+        criteria: {
           click: "Click or tap the target button, link, or tab",
           type: "Focus and enter text into the target input or search box",
           scroll: "Scroll down the page because the target element is likely further down",

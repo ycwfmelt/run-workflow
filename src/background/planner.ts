@@ -11,6 +11,47 @@ export interface TaskPlan {
   steps: PlanStep[];
 }
 
+export const PROVIDER_PRESETS: Record<
+  string,
+  { name: string; endpoint: string; defaultModel: string }
+> = {
+  none: {
+    name: "无 (仅使用内置规则，零依赖冷启动)",
+    endpoint: "",
+    defaultModel: "",
+  },
+  deepseek: {
+    name: "DeepSeek (deepseek-chat)",
+    endpoint: "https://api.deepseek.com",
+    defaultModel: "deepseek-chat",
+  },
+  openai: {
+    name: "OpenAI (gpt-4o-mini)",
+    endpoint: "https://api.openai.com/v1",
+    defaultModel: "gpt-4o-mini",
+  },
+  gemini: {
+    name: "Google Gemini (gemini-2.5-flash via OpenAI API)",
+    endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/",
+    defaultModel: "gemini-2.5-flash",
+  },
+  siliconflow: {
+    name: "硅基流动 SiliconFlow (DeepSeek-V3)",
+    endpoint: "https://api.siliconflow.cn/v1",
+    defaultModel: "deepseek-ai/DeepSeek-V3",
+  },
+  ollama: {
+    name: "Ollama 本地大模型",
+    endpoint: "http://localhost:11434/v1",
+    defaultModel: "llama3.2",
+  },
+  custom: {
+    name: "自定义 OpenAI 兼容 API",
+    endpoint: "https://api.openai.com/v1",
+    defaultModel: "gpt-4o-mini",
+  },
+};
+
 export class TaskPlanner {
   private config: AgentConfig;
 
@@ -29,12 +70,15 @@ export class TaskPlanner {
     // If S2 provider is configured, call generative LLM (OpenAI-compatible API)
     if (
       this.config.systemTwoProvider !== "none" &&
-      this.config.systemTwoApiKey
+      (this.config.systemTwoApiKey || this.config.systemTwoProvider === "ollama")
     ) {
       try {
         return await this.callLLMPlanner(prompt);
       } catch (err) {
-        console.warn("[JevPilot] S2 LLM planner failed, falling back to heuristic parser:", err);
+        console.warn(
+          "[JevPilot] S2 LLM planner failed, falling back to heuristic parser:",
+          err
+        );
       }
     }
 
@@ -55,7 +99,9 @@ export class TaskPlanner {
       query = quoteMatch[1];
     } else {
       // Extract from keywords like 搜索 / search / 查
-      const searchMatch = trimmed.match(/(?:搜索|search|搜|查|find)\s*([^\s,，。]+)/i);
+      const searchMatch = trimmed.match(
+        /(?:搜索|search|搜|查|find)\s*([^\s,，。]+)/i
+      );
       if (searchMatch) {
         query = searchMatch[1];
       } else {
@@ -89,8 +135,9 @@ export class TaskPlanner {
    * Generative S2 LLM planner using OpenAI-compatible Chat Completion endpoint
    */
   private async callLLMPlanner(prompt: string): Promise<TaskPlan> {
-    const endpoint =
-      this.config.systemTwoEndpoint || "https://api.openai.com/v1";
+    const preset = PROVIDER_PRESETS[this.config.systemTwoProvider] || PROVIDER_PRESETS.custom;
+    const endpoint = this.config.systemTwoEndpoint || preset.endpoint || "https://api.openai.com/v1";
+    const model = this.config.systemTwoModel || preset.defaultModel || "gpt-4o-mini";
     const url = `${endpoint.replace(/\/+$/, "")}/chat/completions`;
 
     const systemPrompt = `You are a web automation planner. 
@@ -108,19 +155,22 @@ Return strictly valid JSON with this format:
   ]
 }`;
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (this.config.systemTwoApiKey) {
+      headers["Authorization"] = `Bearer ${this.config.systemTwoApiKey}`;
+    }
+
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.config.systemTwoApiKey}`,
-      },
+      headers,
       body: JSON.stringify({
-        model: this.config.systemTwoModel || "gpt-4o-mini",
+        model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: prompt },
         ],
-        response_format: { type: "json_object" },
         temperature: 0.1,
       }),
     });
@@ -131,7 +181,13 @@ Return strictly valid JSON with this format:
     }
 
     const data = await response.json();
-    const content = data.choices[0]?.message?.content;
+    let content = data.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("Empty response from S2 Planner LLM");
+    }
+
+    // Clean markdown code fences if wrapped
+    content = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
     return JSON.parse(content) as TaskPlan;
   }
 }

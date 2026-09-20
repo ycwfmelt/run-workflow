@@ -290,15 +290,39 @@
     <!-- Quick Settings Collapse -->
     <div class="card">
       <div class="card-title">
-        <span>API 配置 (冷启动设置)</span>
+        <span>API 配置 (冷启动与模型设置)</span>
       </div>
       <div class="settings-row">
         <label>TypeSafe API Key (Jev System One):</label>
         <input type="password" id="typesafeApiKey" placeholder="ts_live_..." />
       </div>
-      <div class="settings-row">
-        <label>System Two API Key (可选，用于长任务规划):</label>
-        <input type="password" id="systemTwoApiKey" placeholder="sk-..." />
+
+      <div class="settings-row" style="margin-top: 10px;">
+        <label>System Two 规划模型 (用于开放式长任务拆解):</label>
+        <select id="systemTwoProvider" style="background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary); padding: 6px 8px; border-radius: 4px; font-size: 12px; outline: none;">
+          <option value="none">无 (仅使用内置规则解析，零依赖)</option>
+          <option value="deepseek">DeepSeek (deepseek-chat)</option>
+          <option value="openai">OpenAI (gpt-4o-mini)</option>
+          <option value="gemini">Google Gemini (gemini-2.5-flash)</option>
+          <option value="siliconflow">硅基流动 SiliconFlow (DeepSeek-V3)</option>
+          <option value="ollama">Ollama 本地大模型 (无需 Key)</option>
+          <option value="custom">自定义 OpenAI 兼容 API</option>
+        </select>
+      </div>
+
+      <div id="s2DetailsContainer" style="display: none; flex-direction: column; gap: 8px; margin-top: 6px; padding: 8px; background: #172033; border-radius: 6px; border: 1px solid #334155;">
+        <div class="settings-row">
+          <label>Endpoint URL:</label>
+          <input type="text" id="systemTwoEndpoint" placeholder="https://api.openai.com/v1" />
+        </div>
+        <div class="settings-row">
+          <label>Model 名称:</label>
+          <input type="text" id="systemTwoModel" placeholder="gpt-4o-mini" />
+        </div>
+        <div class="settings-row" id="s2KeyRow">
+          <label>API Key:</label>
+          <input type="password" id="systemTwoApiKey" placeholder="sk-..." />
+        </div>
       </div>
       <div class="footer-actions">
         <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); cursor: pointer;">
