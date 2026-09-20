@@ -1,0 +1,86 @@
+import { AgentLoop } from "./agent-loop.js";
+import { loadConfig } from "../shared/storage.js";
+import { MessagePayload } from "../shared/types.js";
+
+let agentLoop: AgentLoop | null = null;
+
+// Initialize agent
+async function init() {
+  const config = await loadConfig();
+  agentLoop = new AgentLoop(config);
+
+  // Watch for configuration changes in chrome.storage
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.jev_config) {
+      loadConfig().then((newConfig) => {
+        agentLoop?.updateConfig(newConfig);
+      });
+    }
+  });
+
+  console.log("[JevPilot] Background Service Worker initialized.");
+}
+
+init();
+
+// Open side panel on extension icon click
+chrome.action.onClicked.addListener(async (tab) => {
+  if (tab.id && tab.windowId) {
+    // Open side panel in the current window
+    if ((chrome as any).sidePanel && (chrome as any).sidePanel.open) {
+      await (chrome as any).sidePanel.open({ windowId: tab.windowId });
+    }
+  }
+});
+
+// Message listener from Side Panel / Content script
+chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
+  if (!agentLoop) {
+    sendResponse({ error: "Agent not ready" });
+    return true;
+  }
+
+  const handleAsync = async () => {
+    switch (message.type) {
+      case "START_TASK": {
+        // Query active tab
+        const [activeTab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        if (!activeTab || !activeTab.id) {
+          throw new Error("No active tab found");
+        }
+        // Start running task asynchronously
+        agentLoop!.startTask(activeTab.id, message.prompt);
+        return { success: true };
+      }
+      case "PAUSE_TASK": {
+        await agentLoop!.pause();
+        return { success: true };
+      }
+      case "RESUME_TASK": {
+        await agentLoop!.resume();
+        return { success: true };
+      }
+      case "STOP_TASK": {
+        await agentLoop!.stop();
+        return { success: true };
+      }
+      case "GET_STATE": {
+        return {
+          status: agentLoop!.getStatus(),
+          logs: agentLoop!.getLogs(),
+        };
+      }
+      default:
+        return { success: false, error: "Unknown message type" };
+    }
+  };
+
+  handleAsync()
+    .then((res) => sendResponse(res))
+    .catch((err) => sendResponse({ success: false, error: err.message }));
+
+  return true; // Keep response channel open
+});
