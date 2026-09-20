@@ -51,8 +51,27 @@ function isVisible(el: HTMLElement, frameOffset: FrameOffset): boolean {
   );
 }
 
+function isContainerTag(tag: string): boolean {
+  return [
+    "ul",
+    "ol",
+    "table",
+    "tbody",
+    "thead",
+    "tfoot",
+    "tr",
+    "form",
+    "section",
+    "article",
+    "nav",
+    "body",
+    "html",
+  ].includes(tag);
+}
+
 function isInteractive(el: HTMLElement): boolean {
   const tag = el.tagName.toLowerCase();
+  if (isContainerTag(tag)) return false;
 
   // Naturally interactive tags
   if (["button", "select", "textarea"].includes(tag)) return true;
@@ -77,6 +96,7 @@ function isInteractive(el: HTMLElement): boolean {
     "treeitem",
   ];
   if (role && interactiveRoles.includes(role)) return true;
+  if (el.classList.contains("ant-menu-item") || el.classList.contains("el-menu-item")) return true;
 
   // Custom interaction attributes
   if (el.isContentEditable) return true;
@@ -288,18 +308,54 @@ export function extractInteractiveElements(): PageState {
     0
   );
 
-  // Filter out redundant nested interactive elements (e.g. <span> inside <button>)
+  function isPrimaryUnit(el: HTMLElement): boolean {
+    const tag = el.tagName.toLowerCase();
+    if (["button", "a", "input", "select", "textarea"].includes(tag)) return true;
+    const role = el.getAttribute("role");
+    if (
+      role &&
+      [
+        "button",
+        "link",
+        "menuitem",
+        "tab",
+        "option",
+        "checkbox",
+        "radio",
+        "switch",
+      ].includes(role)
+    ) {
+      return true;
+    }
+    if (el.classList.contains("ant-menu-item") || el.classList.contains("el-menu-item")) {
+      return true;
+    }
+    return false;
+  }
+
+  // Filter out redundant nested interactive elements:
+  // 1. Drop inner children of primary units (e.g. <span> inside <button> or <span> inside ant-menu-item)
+  // 2. Drop outer loose wrappers (e.g. <div> around <a>)
   const filtered: RawCandidate[] = [];
   for (const item of candidates) {
-    const parentInteractive = candidates.find(
-      (p) =>
-        p.el !== item.el &&
-        p.el.contains(item.el) &&
-        ["button", "a"].includes(p.el.tagName.toLowerCase())
+    const el = item.el;
+    const parentPrimary = candidates.find(
+      (p) => p.el !== el && p.el.contains(el) && isPrimaryUnit(p.el)
     );
-    if (!parentInteractive) {
-      filtered.push(item);
+    if (parentPrimary) {
+      continue;
     }
+
+    if (!isPrimaryUnit(el)) {
+      const hasInteractiveChild = candidates.some(
+        (c) => c.el !== el && el.contains(c.el)
+      );
+      if (hasInteractiveChild) {
+        continue;
+      }
+    }
+
+    filtered.push(item);
   }
 
   let counter = 1;
