@@ -90,7 +90,7 @@ export class AgentLoop {
     confidence: number,
     message: string
   ) {
-    console.log(`[Ang] [${status.toUpperCase()}] ${subgoal} -> ${message}`);
+    console.log(`[Workflow] [${status.toUpperCase()}] ${subgoal} -> ${message}`);
     this.logs.push({
       stepNumber: this.logs.length + 1,
       timestamp: Date.now(),

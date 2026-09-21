@@ -14,15 +14,15 @@ function highlightElement(elementId: string) {
     node.scrollIntoView({ behavior: "smooth", block: "center" });
     node.style.outline = "3px solid #10b981";
     node.style.boxShadow = "0 0 10px rgba(16, 185, 129, 0.6)";
-    node.classList.add("ang-highlight");
+    node.classList.add("workflow-highlight");
   }
 }
 
 function clearHighlights() {
-  document.querySelectorAll(".ang-highlight").forEach((el) => {
+  document.querySelectorAll(".workflow-highlight").forEach((el) => {
     (el as HTMLElement).style.outline = "";
     (el as HTMLElement).style.boxShadow = "";
-    el.classList.remove("ang-highlight");
+    el.classList.remove("workflow-highlight");
   });
 }
 
@@ -86,4 +86,4 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
-console.log("[Ang] Content script loaded and listening.");
+console.log("[Workflow] Content script loaded and listening.");

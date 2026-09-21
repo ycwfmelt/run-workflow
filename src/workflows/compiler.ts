@@ -109,7 +109,7 @@ ${transitions
         };
       }
     } catch (llmErr: any) {
-      console.warn("[Ang] S2 LLM generateObject notice, trying generateText:", llmErr.message);
+      console.warn("[Workflow] S2 LLM generateObject notice, trying generateText:", llmErr.message);
 
       try {
         const s2Client = createOpenAI({ baseURL: endpoint, apiKey });
@@ -139,7 +139,7 @@ ${transitions
           };
         }
       } catch (textErr: any) {
-        console.warn("[Ang] S2 LLM generateText fallback notice:", textErr.message);
+        console.warn("[Workflow] S2 LLM generateText fallback notice:", textErr.message);
       }
     }
 

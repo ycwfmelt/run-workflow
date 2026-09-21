@@ -31,7 +31,7 @@ export class VirtualCursor {
     if (this.container || window !== window.top) return;
 
     this.container = document.createElement("div");
-    this.container.id = "ang-virtual-cursor-host";
+    this.container.id = "virtual-cursor-host";
     this.container.style.cssText = `
       position: fixed !important;
       top: 0 !important;
@@ -113,9 +113,9 @@ export class VirtualCursor {
         border: 2px solid #38bdf8;
         background: rgba(56, 189, 248, 0.25);
         pointer-events: none;
-        animation: ang-ripple 0.42s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        animation: cursor-ripple 0.42s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
       }
-      @keyframes ang-ripple {
+      @keyframes cursor-ripple {
         0% {
           transform: scale(1);
           opacity: 1;
@@ -132,20 +132,20 @@ export class VirtualCursor {
     this.cursorEl = wrapper;
 
     wrapper.innerHTML = `
-      <div class="cursor-body" id="ang-cursor-body">
+      <div class="cursor-body" id="cursor-body">
         <svg class="cursor-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <linearGradient id="ang-cursor-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient id="cursor-grad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stop-color="#8b5cf6" />
               <stop offset="100%" stop-color="#3b82f6" />
             </linearGradient>
           </defs>
           <path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.45 0 .67-.54.35-.85L6.35 2.86a.5.5 0 0 0-.85.35Z" 
-                fill="url(#ang-cursor-grad)" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"/>
+                fill="url(#cursor-grad)" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"/>
         </svg>
         <div class="cursor-badge">
           <span class="cursor-dot"></span>
-          <span>Ang</span>
+          <span>AI</span>
         </div>
       </div>
     `;
@@ -192,7 +192,7 @@ export class VirtualCursor {
       this.hide();
     }, 4000);
 
-    const bodyEl = this.shadow?.getElementById("ang-cursor-body");
+    const bodyEl = this.shadow?.getElementById("cursor-body");
 
     if (action === "down") {
       bodyEl?.classList.add("clicking");
@@ -225,7 +225,7 @@ export class VirtualCursor {
     if (!this.cursorEl) return;
     this.isVisible = false;
     this.cursorEl.classList.remove("visible");
-    const bodyEl = this.shadow?.getElementById("ang-cursor-body");
+    const bodyEl = this.shadow?.getElementById("cursor-body");
     bodyEl?.classList.remove("clicking");
   }
 }

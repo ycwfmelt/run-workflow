@@ -94,7 +94,7 @@ async function setupOllamaCorsRules() {
       addRules: rules,
     });
   } catch (err) {
-    console.warn("[Ang] Failed to update declarativeNetRequest rules for Ollama CORS:", err);
+    console.warn("[Workflow] Failed to update declarativeNetRequest rules for Ollama CORS:", err);
   }
 }
 
@@ -118,10 +118,10 @@ async function init() {
   if ((chrome as any).sidePanel?.setPanelBehavior) {
     (chrome as any).sidePanel
       .setPanelBehavior({ openPanelOnActionClick: true })
-      .catch((err: any) => console.warn("[Ang] setPanelBehavior warning:", err));
+      .catch((err: any) => console.warn("[Workflow] setPanelBehavior warning:", err));
   }
 
-  console.log("[Ang] Background Service Worker initialized.");
+  console.log("[Workflow] Background Service Worker initialized.");
 }
 
 init();

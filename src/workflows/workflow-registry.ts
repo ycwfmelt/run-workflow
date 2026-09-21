@@ -5,8 +5,8 @@ import {
   WorkflowMeta,
 } from "./types.js";
 
-const STORAGE_KEY = "ang_custom_workflows";
-const LEGACY_STORAGE_KEY = "jevpilot_custom_workflows";
+const STORAGE_KEY = "custom_workflows";
+const LEGACY_STORAGE_KEY = "ang_custom_workflows";
 
 import { OffscreenRunner } from "../background/offscreen-runner.js";
 
@@ -86,7 +86,7 @@ export class WorkflowRegistry {
           try {
             wf.fn = compileScriptToFunction(wf.script);
           } catch (compileErr) {
-            console.warn(`[Ang] Failed to compile workflow script for ${wf.id}:`, compileErr);
+            console.warn(`[Workflow] Failed to compile workflow script for ${wf.id}:`, compileErr);
           }
         }
         return wf;
