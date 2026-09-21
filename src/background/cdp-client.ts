@@ -44,13 +44,13 @@ export class CDPClient {
     });
   }
 
-  private sendVirtualMouse(x: number, y: number, action?: "move" | "down" | "up" | "click") {
+  private  sendVirtualMouse(x: number, y: number, action: "move" | "down" | "up") {
     chrome.tabs.sendMessage(this.tabId, {
       type: "VIRTUAL_MOUSE_UPDATE",
       x,
       y,
       action,
-    }).catch(() => {
+    }, { frameId: 0 }).catch(() => {
       // Ignore if tab is navigating or script not yet attached
     });
   }
@@ -58,7 +58,7 @@ export class CDPClient {
   hideVirtualMouse() {
     chrome.tabs.sendMessage(this.tabId, {
       type: "VIRTUAL_MOUSE_HIDE",
-    }).catch(() => {});
+    }, { frameId: 0 }).catch(() => {});
   }
 
   public async sendCommand<T = any>(

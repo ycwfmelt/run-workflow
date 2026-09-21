@@ -254,6 +254,7 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
           chrome.tabs.sendMessage(
             tabId,
             { type: "DIAGNOSE_PAGE" },
+            { frameId: 0 },
             (res) => {
               if (chrome.runtime.lastError) {
                 reject(new Error(chrome.runtime.lastError.message));

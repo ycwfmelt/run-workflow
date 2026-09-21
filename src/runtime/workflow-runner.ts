@@ -35,7 +35,7 @@ export class WorkflowRunner {
 
     const fetchPage = async (): Promise<PageState> => {
       return new Promise((resolve, reject) => {
-        chrome.tabs.sendMessage(tabId, { type: "EXTRACT_DOM" }, (res) => {
+        chrome.tabs.sendMessage(tabId, { type: "EXTRACT_DOM" }, { frameId: 0 }, (res) => {
           if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
           else if (res?.state) resolve(res.state);
           else reject(new Error("提取页面状态失败"));

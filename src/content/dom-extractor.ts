@@ -97,17 +97,28 @@ function isInteractive(el: HTMLElement): boolean {
   ];
   if (role && interactiveRoles.includes(role)) return true;
 
-  // Modern UI framework component triggers (AntD, Element Plus, Semi, Arco, etc.)
+  // Modern enterprise UI framework component triggers:
+  // Ant Design (ant-), Alibaba Fusion Design (next-), Element Plus (el-), Semi Design (semi-), Arco Design (arco-), TDesign (t-)
   const classStr = typeof el.className === "string" ? el.className : "";
   if (
     classStr.includes("ant-menu-item") ||
     classStr.includes("el-menu-item") ||
+    classStr.includes("next-menu-item") ||
+    classStr.includes("next-nav-item") ||
+    classStr.includes("next-menu-sub-menu") ||
+    classStr.includes("next-tree-node") ||
+    classStr.includes("semi-navigation-item") ||
+    classStr.includes("arco-menu-item") ||
+    classStr.includes("t-menu__item") ||
+    /menu[-_]item|nav[-_]item|sidebar[-_]item|submenu/i.test(classStr) ||
     classStr.includes("ant-select-selector") ||
     classStr.includes("el-select__wrapper") ||
+    classStr.includes("next-select") ||
     classStr.includes("ant-dropdown-trigger") ||
     classStr.includes("el-dropdown-link") ||
     classStr.includes("ant-btn") ||
-    classStr.includes("el-button")
+    classStr.includes("el-button") ||
+    classStr.includes("next-btn")
   ) {
     return true;
   }
@@ -197,12 +208,12 @@ function extractElementText(el: HTMLElement): string {
   // Contextualize table rows: e.g. "Action (行数据: Cell1 | Cell2 | Cell3)"
   // Support traditional <tr> and modern div/flex/grid tables with role="row" or UI classes
   const tr = el.closest(
-    "tr, [role='row'], .ant-table-row, .el-table__row, [class*='table-row'], [class*='TableRow'], [class*='data-row']"
+    "tr, [role='row'], .ant-table-row, .el-table__row, .next-table-row, [class*='table-row'], [class*='TableRow'], [class*='data-row']"
   );
   if (tr) {
     const cells = Array.from(
       tr.querySelectorAll(
-        "td, th, [role='cell'], [role='gridcell'], .ant-table-cell, .el-table__cell, [class*='cell']"
+        "td, th, [role='cell'], [role='gridcell'], .ant-table-cell, .el-table__cell, .next-table-cell, [class*='cell']"
       )
     )
       .filter((td) => !td.contains(el))
@@ -215,9 +226,9 @@ function extractElementText(el: HTMLElement): string {
   }
 
   // Contextualize form items: e.g. "[Field Label] Placeholder/Input"
-  const formItem = el.closest(".ant-form-item, .el-form-item, .form-group, .form-item");
+  const formItem = el.closest(".ant-form-item, .el-form-item, .next-form-item, .form-group, .form-item");
   if (formItem) {
-    const labelEl = formItem.querySelector("label, .ant-form-item-label, .el-form-item__label");
+    const labelEl = formItem.querySelector("label, .ant-form-item-label, .el-form-item__label, .next-form-item-label");
     if (labelEl && !labelEl.contains(el)) {
       const labelText = cleanText(labelEl.textContent || "");
       if (labelText) {
@@ -228,11 +239,11 @@ function extractElementText(el: HTMLElement): string {
 
   // Contextualize modal dialog items: e.g. "确认 (弹窗提示: 确认通过吗？)"
   const dialog = el.closest(
-    ".ant-modal, .ant-modal-confirm, .el-dialog, .el-message-box, [role='dialog'], .modal"
+    ".ant-modal, .ant-modal-confirm, .el-dialog, .el-message-box, .next-dialog, .next-overlay-wrapper, [role='dialog'], .modal"
   );
   if (dialog) {
     const titleEl = dialog.querySelector(
-      ".ant-modal-confirm-title, .ant-modal-title, .el-dialog__title, .el-message-box__title, .modal-title, [class*='title'], h1, h2, h3, h4"
+      ".ant-modal-confirm-title, .ant-modal-title, .el-dialog__title, .el-message-box__title, .next-dialog-header, .modal-title, [class*='title'], h1, h2, h3, h4"
     );
     let titleText = titleEl ? cleanText(titleEl.textContent || "") : "";
     if (!titleText) {
@@ -406,6 +417,7 @@ export function extractInteractiveElements(): PageState {
         "radio",
         "switch",
         "combobox",
+        "treeitem",
       ].includes(role)
     ) {
       return true;
@@ -414,10 +426,17 @@ export function extractInteractiveElements(): PageState {
     if (
       classStr.includes("ant-menu-item") ||
       classStr.includes("el-menu-item") ||
+      classStr.includes("next-menu-item") ||
+      classStr.includes("next-nav-item") ||
+      classStr.includes("next-menu-sub-menu") ||
+      classStr.includes("next-tree-node") ||
+      /menu[-_]item|nav[-_]item|sidebar[-_]item/i.test(classStr) ||
       classStr.includes("ant-select-selector") ||
       classStr.includes("el-select__wrapper") ||
+      classStr.includes("next-select") ||
       classStr.includes("ant-btn") ||
-      classStr.includes("el-button")
+      classStr.includes("el-button") ||
+      classStr.includes("next-btn")
     ) {
       return true;
     }

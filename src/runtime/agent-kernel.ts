@@ -83,7 +83,7 @@ Your task: "${prompt}".
    - Use zoom_in({ containerRef: "bX", intent: "..." }) to drill down into a landmark container (e.g. main workspace, table, modal dialog).
    - If a container does NOT have what you need, use back_to_parent({ reason: "..." }) or exit_to_root({ reason: "..." }) (Exit Node). The system records your dead-end history so you never repeat mistakes.
 3. Physical Action Execution (DOM Mutations):
-   - When you have located the target interactive element (e.g. e10), call act({ elementRef: "e10", action: "click" | "type", intent: "..." }).
+   - When you have located the target node (either an interactive element like e10 or a clickable menu container/header like b3), call act({ elementRef: "...", action: "click" | "type", intent: "..." }).
    - Real CDP click / input events will be executed with human-like curves.
 4. Conclude:
    - When the overall task is verified complete, call finish({ summary: "..." }).`,
@@ -247,7 +247,7 @@ Your task: "${prompt}".
         act: tool({
           description: "Execute physical click, type, or scroll via CDP on a verified A11y element ref",
           inputSchema: z.object({
-            elementRef: z.string().optional().describe("Target element ref e.g. e10, e42 (required for click and type)"),
+            elementRef: z.string().optional().describe("Target node ref e.g. e10, e42, or container b3 (required for click and type)"),
             action: z.enum(["click", "type", "scroll"]).describe("Action to perform"),
             text: z.string().optional().describe("Text to type if action is type"),
             scrollDeltaY: z.number().optional().describe("Pixels to scroll (positive = down, negative = up)"),

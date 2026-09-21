@@ -103,11 +103,13 @@ export class A11ySnapshot {
 
       const isContainer = CONTAINER_ROLES.has(role);
       const isInteractive = INTERACTIVE_ROLES.has(role);
+      const isFocusable = raw.properties?.some((p) => p.name === "focusable" && p.value?.value === true);
+      const hasPopup = raw.properties?.some((p) => p.name === "hasPopup" && Boolean(p.value?.value));
 
       if (isContainer) {
         const ref = `b${boxCounter++}`;
         rawIdToRef.set(raw.nodeId, ref);
-      } else if (isInteractive) {
+      } else if (isInteractive || (name && (isFocusable || hasPopup))) {
         const ref = `e${elemCounter++}`;
         rawIdToRef.set(raw.nodeId, ref);
       } else if (name && (role === "cell" || role === "gridcell" || role === "heading")) {
@@ -135,7 +137,7 @@ export class A11ySnapshot {
       }
 
       const isContainer = ref.startsWith("b");
-      const isInteractive = INTERACTIVE_ROLES.has(role);
+      const isInteractive = ref.startsWith("e") && !["cell", "gridcell", "heading"].includes(role);
 
       // Resolve valid children refs
       const childrenRefs: string[] = [];

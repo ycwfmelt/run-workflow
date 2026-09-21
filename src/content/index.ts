@@ -33,6 +33,13 @@ chrome.runtime.onMessage.addListener(
     _sender: chrome.runtime.MessageSender,
     sendResponse: (response?: any) => void
   ) => {
+    // CRITICAL: Subframes (such as invisible SSO/tracker hubs like 1688 storage hubs, ad frames, etc.)
+    // MUST NOT intercept or reply to page-level commands! Only the top window handles DOM extraction,
+    // diagnostics, and visual controls.
+    if (window !== window.top) {
+      return false;
+    }
+
     switch (message.type) {
       case "EXTRACT_DOM": {
         const pageState = extractInteractiveElements();

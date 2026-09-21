@@ -132,7 +132,7 @@ export class AgentLoop {
 
   private async requestPageState(tabId: number): Promise<PageState> {
     return new Promise((resolve) => {
-      chrome.tabs.sendMessage(tabId, { type: "EXTRACT_DOM" }, (res) => {
+      chrome.tabs.sendMessage(tabId, { type: "EXTRACT_DOM" }, { frameId: 0 }, (res) => {
         if (!chrome.runtime.lastError && res?.state) {
           return resolve(res.state);
         }
