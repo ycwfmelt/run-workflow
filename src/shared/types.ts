@@ -66,7 +66,7 @@ export interface StepLog {
   actionType?: ActionType;
   confidence: number;
   probabilities?: Record<string, number>;
-  status: "success" | "warning" | "error";
+  status: "success" | "warning" | "error" | "guidance" | "info";
   message: string;
 }
 
@@ -148,6 +148,7 @@ export type MessagePayload =
   | { type: "PAUSE_TASK" }
   | { type: "RESUME_TASK" }
   | { type: "STOP_TASK" }
+  | { type: "INJECT_GUIDANCE"; guidance: string }
   | { type: "SAVE_LAST_WORKFLOW" }
   | { type: "CLOSE_SIDEPANEL" }
   | {

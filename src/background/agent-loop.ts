@@ -86,7 +86,7 @@ export class AgentLoop {
 
   private log(
     subgoal: string,
-    status: "success" | "warning" | "error",
+    status: "success" | "warning" | "error" | "guidance" | "info",
     confidence: number,
     message: string
   ) {
@@ -99,6 +99,17 @@ export class AgentLoop {
       status,
       message,
     });
+    this.broadcastState();
+  }
+
+  injectGuidance(guidance: string) {
+    const trimmed = guidance.trim();
+    if (!trimmed) return;
+    this.log("用户引导", "guidance", 1.0, `🧑‍💻 实时输入指引: "${trimmed}"`);
+    this.kernel.injectGuidance(trimmed);
+    if (this.status === "waiting_user" || this.status === "paused") {
+      this.status = "running";
+    }
     this.broadcastState();
   }
 
@@ -234,10 +245,21 @@ export class AgentLoop {
           this.cdp,
           this.config,
           {
-            onLog: (phase: string, level: "info" | "success" | "warning" | "error", msg: string) =>
-              this.log(phase, level === "info" ? "success" : level, 1.0, msg),
+            onLog: (
+              phase: string,
+              level: "info" | "success" | "warning" | "error" | "guidance",
+              msg: string
+            ) => this.log(phase, level === "info" ? "success" : level, 1.0, msg),
             onStepFinish: (step: number) => {
               this.currentStepIndex = step;
+              this.broadcastState();
+            },
+            onWaitingUser: (question: string) => {
+              this.status = "waiting_user";
+              this.broadcastState();
+            },
+            onResumeUser: () => {
+              this.status = "running";
               this.broadcastState();
             },
           },

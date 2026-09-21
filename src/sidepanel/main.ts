@@ -22,6 +22,12 @@ const closeDebugBtn = document.getElementById("closeDebugBtn") as HTMLButtonElem
 const diagnoseResult = document.getElementById("diagnoseResult") as HTMLElement;
 let currentDiagnosticsText = "";
 
+const guidanceCard = document.getElementById("guidanceCard") as HTMLElement;
+const guidanceInput = document.getElementById("guidanceInput") as HTMLInputElement;
+const sendGuidanceBtn = document.getElementById("sendGuidanceBtn") as HTMLButtonElement;
+const guidanceBadge = document.getElementById("guidanceBadge") as HTMLElement;
+const guidanceSubtext = document.getElementById("guidanceSubtext") as HTMLElement;
+
 const targetTabSelect = document.getElementById("targetTabSelect") as HTMLSelectElement;
 const refreshTabsBtn = document.getElementById("refreshTabsBtn") as HTMLButtonElement;
 
@@ -438,6 +444,46 @@ stopBtn.addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "STOP_TASK" });
 });
 
+function sendUserGuidance(customText?: string) {
+  const text = (customText !== undefined ? customText : guidanceInput?.value || "").trim();
+  if (!text) return;
+
+  chrome.runtime.sendMessage({ type: "INJECT_GUIDANCE", guidance: text }, (res) => {
+    if (res && res.error) {
+      alert(`指引注入失败: ${res.error}`);
+      return;
+    }
+    if (guidanceInput) guidanceInput.value = "";
+    if (guidanceBadge) guidanceBadge.style.display = "none";
+    if (guidanceSubtext) {
+      guidanceSubtext.textContent = "✓ 指引已成功注入下一决策步";
+      guidanceSubtext.style.color = "#059669";
+      setTimeout(() => {
+        if (guidanceSubtext) {
+          guidanceSubtext.textContent = "(运行中随时补充提示)";
+          guidanceSubtext.style.color = "#6366f1";
+        }
+      }, 2200);
+    }
+  });
+}
+
+sendGuidanceBtn?.addEventListener("click", () => sendUserGuidance());
+
+guidanceInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    sendUserGuidance();
+  }
+});
+
+document.querySelectorAll(".quick-hint-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const hint = btn.getAttribute("data-hint");
+    if (hint) sendUserGuidance(hint);
+  });
+});
+
 diagnoseBtn.addEventListener("click", () => {
   if (debugCard) {
     debugCard.style.display = "block";
@@ -534,6 +580,36 @@ function updateUIStatus(status: TaskStatus) {
   if (telemetryCard) {
     telemetryCard.style.display = isBusy || isPaused ? "block" : "none";
   }
+
+  if (guidanceCard) {
+    guidanceCard.style.display = isBusy || isPaused ? "block" : "none";
+  }
+
+  if (status === "waiting_user") {
+    if (guidanceBadge) {
+      guidanceBadge.style.display = "inline-block";
+      guidanceBadge.textContent = "模型等待指引中";
+    }
+    if (guidanceSubtext) {
+      guidanceSubtext.textContent = "模型遇到疑问或动作暂停，请在下方补充线索";
+      guidanceSubtext.style.color = "#b91c1c";
+    }
+    if (guidanceCard) {
+      guidanceCard.style.borderColor = "#fca5a5";
+      guidanceCard.style.background = "#fff5f5";
+    }
+    setTimeout(() => guidanceInput?.focus(), 60);
+  } else {
+    if (guidanceBadge) guidanceBadge.style.display = "none";
+    if (guidanceSubtext) {
+      guidanceSubtext.textContent = "(运行中随时补充提示)";
+      guidanceSubtext.style.color = "#6366f1";
+    }
+    if (guidanceCard) {
+      guidanceCard.style.borderColor = "#c7d2fe";
+      guidanceCard.style.background = "#f8faff";
+    }
+  }
 }
 
 // Render logs
@@ -546,7 +622,13 @@ function renderLogs(logs: StepLog[]) {
   logList.innerHTML = "";
   logs.forEach((log) => {
     const item = document.createElement("div");
-    item.className = `log-item ${log.status}`;
+    const isGuidance =
+      log.status === "guidance" ||
+      log.subgoal.includes("用户引导") ||
+      log.subgoal.includes("指引") ||
+      log.message.includes("用户提供指引") ||
+      log.message.includes("实时输入指引");
+    item.className = `log-item ${isGuidance ? "guidance" : log.status}`;
 
     const time = new Date(log.timestamp).toLocaleTimeString();
     const confPercent = Math.round(log.confidence * 100);
@@ -554,9 +636,13 @@ function renderLogs(logs: StepLog[]) {
     item.innerHTML = `
       <div class="log-header">
         <span>#${log.stepNumber} [${time}]</span>
-        <span class="log-confidence" style="color: ${log.confidence > 0.85 ? '#059669' : log.confidence > 0.65 ? '#d97706' : '#dc2626'}">
-          Conf: ${confPercent}%
-        </span>
+        ${
+          isGuidance
+            ? `<span class="log-confidence" style="color: #4338ca; background: #e0e7ff; padding: 1px 6px; border-radius: 9999px; font-weight: 600;">💡 人工干预</span>`
+            : `<span class="log-confidence" style="color: ${
+                log.confidence > 0.85 ? '#059669' : log.confidence > 0.65 ? '#d97706' : '#dc2626'
+              }">Conf: ${confPercent}%</span>`
+        }
       </div>
       <div style="font-weight: 600; color: #0f172a; margin-bottom: 2px;">${escapeHtml(log.subgoal)}</div>
       <div style="color: #475569;">${escapeHtml(log.message)}</div>
