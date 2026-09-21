@@ -160,7 +160,7 @@ export class AgentLoop {
 
       this.status = "planning";
       this.broadcastState();
-      this.log("页面理解", "success", 1.0, "正在提取页面 DOM 与可视可交互元素...");
+      this.log("页面理解", "success", 1.0, "正在初始化 Chrome 原生 A11y 树并建立无障碍地标索引...");
 
       const pageState = await this.requestPageState(tabId);
       const matchingWorkflows = await WorkflowRegistry.getMatchingWorkflows(pageState.url);

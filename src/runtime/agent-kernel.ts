@@ -2,80 +2,22 @@ import { generateText, tool, isStepCount } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { z } from "zod";
 import { CDPClient } from "../background/cdp-client.js";
-import { AgentConfig, PageState, InteractiveElement } from "../shared/types.js";
+import { AgentConfig, PageState } from "../shared/types.js";
 import { ConditionSpec, evaluateCondition } from "../shared/conditions.js";
-import { TraceStep, deriveGuard } from "../shared/trace.js";
+import { TraceStep } from "../shared/trace.js";
 import { sleep } from "../background/bezier-mouse.js";
+import { A11yTreeService, A11ySnapshot } from "./a11y-tree.js";
 
 export interface AgentKernelHooks {
   onLog?: (phase: string, level: "info" | "success" | "warning" | "error", message: string) => void;
   onStepFinish?: (step: number, toolCalls: any[], trace: TraceStep[]) => void;
 }
 
-/**
- * Ranks and prioritizes interactive elements based on prompt intent.
- * Guarantees that elements matching target keywords (e.g. angelina-dev, config-manifest, 重启)
- * as well as essential inputs/selects are placed at the top of the model prompt.
- */
-function rankElements(
-  elements: PageState["elements"],
-  prompt: string,
-  limit: number = 120
-) {
-  // Extract keywords (both English tokens and Chinese words)
-  const tokens = prompt
-    .toLowerCase()
-    .replace(/[^\w\u4e00-\u9fa5\-_]/g, " ")
-    .split(/\s+/)
-    .filter((t) => t.length >= 2);
-
-  const scored = elements.map((el, idx) => {
-    let score = 0;
-    const fullText = `${el.id} ${el.tag} ${el.text || ""} ${el.role || ""} ${el.selector || ""}`.toLowerCase();
-
-    // 1. Keyword match in element text or row context
-    for (const token of tokens) {
-      if (fullText.includes(token)) {
-        score += 80;
-        if ((el.text || "").toLowerCase().includes(token)) {
-          score += 60;
-        }
-      }
-    }
-
-    // 2. High-value interactive controls
-    if (el.isInput || el.tag === "select" || el.role === "combobox") {
-      score += 40; // inputs / dropdowns are critical for navigation & search
-    }
-    if (el.text && (el.text.includes("重启") || el.text.includes("restart") || el.text.includes("manifest"))) {
-      score += 100;
-    }
-
-    // 3. Preserve natural visual order slightly
-    score += Math.max(0, 30 - idx * 0.15);
-
-    return {
-      score,
-      element: {
-        id: el.id,
-        tag: el.tag,
-        text: el.text || el.placeholder || "",
-        role: el.role,
-        isClickable: el.isClickable,
-        isInput: el.isInput,
-      },
-    };
-  });
-
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, limit).map((s) => s.element);
-}
-
 export class AgentKernel {
   /**
-   * Autonomous exploration loop powered purely by Vercel AI SDK Tool Calling.
-   * Direct model-driven ReAct cycle with hooks for UI telemetry and trace collection.
-   * Zero silent fallback — executes configured S2 directly and fails loudly if unreachable.
+   * Autonomous exploration loop powered by Native A11y Tree (PinchTab-style)
+   * and continuous DFS Hierarchical Box Exploration with explicit Exit Nodes.
+   * Zero handcrafted heuristics — relies on browser's native accessibility engine.
    */
   async runExploration(
     tabId: number,
@@ -88,62 +30,174 @@ export class AgentKernel {
   ): Promise<TraceStep[]> {
     const trace: TraceStep[] = [];
     let stepCount = 0;
-    let currentPage = initialPageState;
 
     const endpoint = (config.systemTwoEndpoint || "http://localhost:11434/v1").replace(/\/+$/, "");
     const modelName = config.systemTwoModel || "deepseek-v4.1-flash:cloud";
     const apiKey = config.systemTwoApiKey || config.typesafeApiKey || "ollama";
     const s2Client = createOpenAI({ baseURL: endpoint, apiKey });
 
-    const fetchLatestPage = async (): Promise<PageState> => {
-      return new Promise<PageState>((resolve) => {
-        chrome.tabs.sendMessage(tabId, { type: "EXTRACT_DOM" }, (res) => {
-          if (res?.state) resolve(res.state);
-          else resolve(currentPage);
-        });
-      });
+    hooks.onLog?.("Supervisor", "info", `🤖 S2 模型原生 A11y 树自主循环启动: "${prompt}"`);
+
+    // Capture initial native A11y Snapshot
+    let snapshot = await A11yTreeService.captureSnapshot(cdp, tabId);
+    let currentFocusRef: string = "root";
+    const breadcrumbs: string[] = ["Root"];
+    const deadEnds: Array<{ ref: string; reason: string }> = [];
+
+    const getCurrentViewText = (): string => {
+      if (currentFocusRef === "root") {
+        return snapshot.getRootOverview();
+      }
+      return snapshot.getBoxView(currentFocusRef);
     };
 
-    hooks.onLog?.("Supervisor", "info", `🤖 S2 模型原生自主循环启动: "${prompt}"`);
-
-    const initialVisibleElements = rankElements(currentPage.elements, prompt, 120);
+    const getSystemContext = (): string => {
+      const parts: string[] = [];
+      parts.push(`当前焦点层级 (Breadcrumbs): ${breadcrumbs.join(" > ")}`);
+      if (deadEnds.length > 0) {
+        parts.push(
+          `已探查死路记录 (Dead-End History): ${deadEnds.map((d) => `[${d.ref}] (${d.reason})`).join("; ")}`
+        );
+      }
+      return parts.join("\n");
+    };
 
     const result = await generateText({
       model: s2Client.chat(modelName),
-      system: `You are an autonomous web automation supervisor. Your task: "${prompt}".
-Observe the interactive elements, call tools to progress state until the overall goal is fully achieved.
-When looking for a specific item (e.g. application, namespace, or action button):
-- Inspect the elements carefully. Elements inside tables have contextual row data attached, e.g. "重启 (行数据: config-manifest | angelina-dev)".
-- If the item is not immediately visible, use search/filter inputs or call act with action: "scroll" to scroll down.
-- When the goal is confirmed complete, call the finish tool.`,
-      prompt: `Current URL: ${currentPage.url}\nTitle: ${currentPage.title}\nTotal Interactive Elements: ${currentPage.elements.length}\nTop Interactive Elements:\n${JSON.stringify(initialVisibleElements, null, 2)}`,
+      system: `You are an autonomous web automation supervisor operating on a browser Native Accessibility Tree (A11y Tree).
+Your task: "${prompt}".
+
+### Operational Architecture (Continuous DFS Hierarchical Exploration):
+1. Cognitive Search (No DOM Mutations):
+   - You start at the Root Landmark overview.
+   - Use find_in_tree({ keyword: "..." }) to immediately locate target keywords (like application names, namespaces, or action verbs) anywhere in the page.
+   - Use zoom_in({ containerRef: "bX", intent: "..." }) to drill down into a landmark container (e.g. main workspace, table, modal dialog).
+   - If a container does NOT have what you need, use back_to_parent({ reason: "..." }) or exit_to_root({ reason: "..." }) (Exit Node). The system records your dead-end history so you never repeat mistakes.
+2. Physical Action Execution (DOM Mutations):
+   - When you have located the target interactive element (e.g. e10), call act({ elementRef: "e10", action: "click" | "type", intent: "..." }).
+   - Real CDP click / input events will be executed with human-like curves.
+3. Conclude:
+   - When the overall task is verified complete, call finish({ summary: "..." }).`,
+      prompt: `${getSystemContext()}\n\n${getCurrentViewText()}`,
       stopWhen: isStepCount(config.maxSteps || 15),
       abortSignal,
       tools: {
-        act: tool({
-          description: "Execute visual click, type, or scroll via S1 CDP",
+        find_in_tree: tool({
+          description: "Instantly search all nodes in the A11y Tree by keyword (e.g. application name, namespace, or verb)",
           inputSchema: z.object({
-            elementId: z.string().optional().describe("Target element id e.g. el_1 (required for click and type)"),
+            keyword: z.string().describe("Keyword to search, e.g. config-manifest, angelina-dev, 重启"),
+          }),
+          execute: async ({ keyword }: { keyword: string }) => {
+            hooks.onLog?.("A11y全局检索", "info", `🔎 检索无障碍树: "${keyword}"`);
+            const searchResult = snapshot.search(keyword, 8);
+            return {
+              result: searchResult,
+              hint: "You can zoom_in to the parent container of the found node, or directly act on the found element ref.",
+            };
+          },
+        }),
+
+        zoom_in: tool({
+          description: "DFS Step: Drill down into a specific container/box to inspect its internal structure and elements",
+          inputSchema: z.object({
+            containerRef: z.string().describe("Target container ref e.g. b1, b3, b3_1"),
+            intent: z.string().describe("Reason for exploring this container"),
+          }),
+          execute: async ({ containerRef, intent }: { containerRef: string; intent: string }) => {
+            const targetBox = snapshot.nodesByRef.get(containerRef);
+            if (!targetBox) {
+              return { error: `Container [${containerRef}] not found in A11y tree.` };
+            }
+
+            currentFocusRef = containerRef;
+            breadcrumbs.push(`[${containerRef}] ${targetBox.name || targetBox.role}`);
+            hooks.onLog?.(
+              "DFS深入",
+              "info",
+              `🔍 深入聚焦容器 [${containerRef}] <${targetBox.role}> "${targetBox.name || ""}" -> ${intent}`
+            );
+
+            return {
+              currentPath: breadcrumbs.join(" > "),
+              view: snapshot.getBoxView(containerRef),
+              hint: "Inspect the direct elements or sub-containers. If this path is wrong, call back_to_parent with a reason.",
+            };
+          },
+        }),
+
+        back_to_parent: tool({
+          description: "Exit Node: Backtrack to the parent container when current container has no valid path (DFS Backtrack)",
+          inputSchema: z.object({
+            reason: z.string().describe("Why this container was a dead end or did not have target items"),
+          }),
+          execute: async ({ reason }: { reason: string }) => {
+            const currentBox = snapshot.nodesByRef.get(currentFocusRef);
+            deadEnds.push({ ref: currentFocusRef, reason });
+
+            if (breadcrumbs.length > 1) {
+              breadcrumbs.pop();
+            }
+
+            if (currentBox?.parentRef && currentBox.parentRef !== "b1") {
+              currentFocusRef = currentBox.parentRef;
+            } else {
+              currentFocusRef = "root";
+            }
+
+            hooks.onLog?.("DFS回退", "warning", `↩️ Exit Node 触发回退: ${reason}`);
+
+            return {
+              currentPath: breadcrumbs.join(" > "),
+              view: getCurrentViewText(),
+              deadEndRecorded: reason,
+            };
+          },
+        }),
+
+        exit_to_root: tool({
+          description: "Exit Node: Reset focus back to the top-level root landmark overview",
+          inputSchema: z.object({
+            reason: z.string().describe("Reason for resetting back to the root"),
+          }),
+          execute: async ({ reason }: { reason: string }) => {
+            deadEnds.push({ ref: currentFocusRef, reason });
+            currentFocusRef = "root";
+            breadcrumbs.length = 1;
+
+            hooks.onLog?.("DFS重置", "warning", `🔄 重置回最外层概览: ${reason}`);
+
+            return {
+              currentPath: "Root",
+              view: snapshot.getRootOverview(),
+            };
+          },
+        }),
+
+        act: tool({
+          description: "Execute physical click, type, or scroll via CDP on a verified A11y element ref",
+          inputSchema: z.object({
+            elementRef: z.string().optional().describe("Target element ref e.g. e10, e42 (required for click and type)"),
             action: z.enum(["click", "type", "scroll"]).describe("Action to perform"),
             text: z.string().optional().describe("Text to type if action is type"),
-            scrollDeltaY: z.number().optional().describe("Pixels to scroll if action is scroll (positive = down, negative = up, e.g. 450)"),
-            intent: z.string().describe("Short action description, e.g. 点击命名空间下拉菜单 或 向下滚动页面寻找应用"),
+            scrollDeltaY: z.number().optional().describe("Pixels to scroll (positive = down, negative = up)"),
+            intent: z.string().describe("Action intent e.g. 点击确认重启, 输入应用名称"),
           }),
           execute: async ({
-            elementId,
+            elementRef,
             action,
             text,
             scrollDeltaY,
             intent,
           }: {
-            elementId?: string;
+            elementRef?: string;
             action: "click" | "type" | "scroll";
             text?: string;
             scrollDeltaY?: number;
             intent: string;
           }) => {
             stepCount++;
-            const before = currentPage;
+            const beforeUrl = snapshot.url;
+            const beforeTitle = snapshot.title;
 
             // 1. Scroll action
             if (action === "scroll") {
@@ -155,85 +209,93 @@ When looking for a specific item (e.g. application, namespace, or action button)
               );
               await cdp.scroll(delta);
               await sleep(1200);
-              currentPage = await fetchLatestPage();
-              const after = currentPage;
+
+              snapshot = await A11yTreeService.captureSnapshot(cdp, tabId);
               const deltaDesc = `页面已滚动 ${delta > 0 ? "向下" : "向上"} ${Math.abs(delta)}px`;
 
               trace.push({
                 step: stepCount,
                 intent,
                 action: { type: "scroll", elementDescription: `Scroll ${delta}px` },
-                before: { url: before.url, title: before.title },
-                after: { url: after.url, title: after.title },
+                before: { url: beforeUrl, title: beforeTitle },
+                after: { url: snapshot.url, title: snapshot.title },
                 stateDelta: deltaDesc,
               });
 
               return {
-                url: after.url,
-                title: after.title,
-                delta: deltaDesc,
-                elements: rankElements(after.elements, prompt, 120),
+                url: snapshot.url,
+                title: snapshot.title,
+                view: getCurrentViewText(),
               };
             }
 
             // 2. Click or Type action
-            if (!elementId) {
-              hooks.onLog?.(`步骤 ${stepCount}`, "warning", `⚠️ 未指定 elementId`);
-              return { error: "elementId is required for click and type actions" };
+            if (!elementRef) {
+              hooks.onLog?.(`步骤 ${stepCount}`, "warning", `⚠️ 未指定 elementRef`);
+              return { error: "elementRef is required for click and type actions" };
             }
 
-            const targetEl = before.elements.find((e) => e.id === elementId);
-            if (!targetEl) {
+            const targetNode = snapshot.nodesByRef.get(elementRef);
+            if (!targetNode || !targetNode.backendNodeId) {
               hooks.onLog?.(
                 `步骤 ${stepCount}`,
                 "warning",
-                `⚠️ 目标元素 [${elementId}] 未在当前可见 DOM 中找到，正在提示模型通过搜索框筛选或滚动页面...`
+                `⚠️ A11y 节点 [${elementRef}] 未找到有效 DOM 映射，提示模型检查`
               );
               return {
-                error: `Element ${elementId} not found in current page view.`,
-                availableElements: rankElements(before.elements, prompt, 25).map(
-                  (e) => `[${e.id}] <${e.tag}> "${e.text}"`
-                ),
-                hint: `If the target application or element is below the fold, call act with action: "scroll" and scrollDeltaY: 450 to reveal it. Or type the application name into a search/filter input first.`,
+                error: `Element [${elementRef}] not found in current A11y snapshot. Call find_in_tree to search.`,
               };
             }
 
-            hooks.onLog?.(
-              `步骤 ${stepCount}`,
-              "info",
-              `S1 执行动作: ${intent} [${targetEl.id}] <${targetEl.tag}> "${targetEl.text || ""}"`
-            );
+            // Resolve physical bounding box using CDP DOM.getBoxModel
+            const rect = await cdp.getBoxModel(targetNode.backendNodeId);
+            if (!rect) {
+              hooks.onLog?.(
+                `步骤 ${stepCount}`,
+                "warning",
+                `⚠️ 节点 [${elementRef}] <${targetNode.role}> 在当前页面不可视或无物理排版盒模型`
+              );
+              return {
+                error: `Element [${elementRef}] has no physical layout box. Try scrolling into view or checking its container.`,
+              };
+            }
+
+            const desc = `[${targetNode.ref}] <${targetNode.role}> "${targetNode.name || ""}"`;
+            hooks.onLog?.(`步骤 ${stepCount}`, "info", `⚡ S1 执行物理动作: ${intent} -> ${desc}`);
 
             if (action === "type" && text) {
-              await cdp.clickElement(targetEl.rect, config.antiBotMode);
+              await cdp.clickElement(rect, config.antiBotMode);
               await sleep(150);
               await cdp.typeText(text, config.antiBotMode);
             } else {
-              await cdp.clickElement(targetEl.rect, config.antiBotMode);
+              await cdp.clickElement(rect, config.antiBotMode);
             }
 
             await sleep(1600);
-            currentPage = await fetchLatestPage();
-            const after = currentPage;
+            snapshot = await A11yTreeService.captureSnapshot(cdp, tabId);
 
-            const guard = deriveGuard(before, after, targetEl.text || targetEl.placeholder || targetEl.value);
-            const deltaDesc = after.url !== before.url ? `URL跳转: ${before.url} ➔ ${after.url}` : `页面状态更新`;
+            const deltaDesc = snapshot.url !== beforeUrl ? `URL跳转: ${beforeUrl} ➔ ${snapshot.url}` : `页面状态更新`;
 
             trace.push({
               step: stepCount,
               intent,
-              action: { type: action, elementId: targetEl.id, elementDescription: `<${targetEl.tag}> "${targetEl.text}"`, text },
-              before: { url: before.url, title: before.title },
-              after: { url: after.url, title: after.title },
-              guard,
+              action: {
+                type: action,
+                elementId: targetNode.ref,
+                elementDescription: desc,
+                text,
+              },
+              before: { url: beforeUrl, title: beforeTitle },
+              after: { url: snapshot.url, title: snapshot.title },
               stateDelta: deltaDesc,
             });
 
             return {
-              url: after.url,
-              title: after.title,
+              url: snapshot.url,
+              title: snapshot.title,
               delta: deltaDesc,
-              elements: rankElements(after.elements, prompt, 120),
+              view: getCurrentViewText(),
+              hint: "Action completed. Check the updated view to verify or execute next action.",
             };
           },
         }),
@@ -246,7 +308,7 @@ When looking for a specific item (e.g. application, namespace, or action button)
             selector: z.string().optional(),
             disappeared: z.string().optional(),
           }),
-          execute: async (criteria: ConditionSpec) => evaluateCondition(currentPage, criteria),
+          execute: async (criteria: ConditionSpec) => evaluateCondition(initialPageState, criteria),
         }),
 
         finish: tool({
@@ -272,7 +334,7 @@ When looking for a specific item (e.g. application, namespace, or action button)
         hooks.onLog?.(
           "S2分析诊断",
           "warning",
-          `⚠️ 未检测到有效交互动作（共提取到 ${currentPage.elements.length} 个可视元素）。如果页面包含跨域 Iframe 或 Shadow DOM，请点击【🔍 诊断页面】排查。`
+          `⚠️ 未检测到有效交互动作。如果页面使用了跨域 Iframe，请点击【🔍 诊断页面】排查。`
         );
       }
     }

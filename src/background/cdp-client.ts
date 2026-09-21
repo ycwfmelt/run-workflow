@@ -24,8 +24,9 @@ export class CDPClient {
           reject(new Error(chrome.runtime.lastError.message));
         } else {
           this.attached = true;
-          // Enable page/DOM domains if needed
+          // Enable page/DOM and Accessibility domains
           chrome.debugger.sendCommand({ tabId: this.tabId }, "DOM.enable", {}, () => {});
+          chrome.debugger.sendCommand({ tabId: this.tabId }, "Accessibility.enable", {}, () => {});
           resolve();
         }
       });
@@ -60,7 +61,7 @@ export class CDPClient {
     }).catch(() => {});
   }
 
-  private async sendCommand<T = any>(method: string, params: Record<string, any> = {}): Promise<T> {
+  public async sendCommand<T = any>(method: string, params: Record<string, any> = {}): Promise<T> {
     if (!this.attached) {
       await this.attach();
     }
@@ -78,6 +79,36 @@ export class CDPClient {
         }
       );
     });
+  }
+
+  /**
+   * Resolves physical viewport bounding rect for a CDP backendNodeId
+   */
+  async getBoxModel(backendNodeId: number): Promise<ElementRect | null> {
+    try {
+      await this.sendCommand("DOM.scrollIntoViewIfNeeded", { backendNodeId }).catch(() => {});
+      const res = await this.sendCommand("DOM.getBoxModel", { backendNodeId });
+      if (!res || !res.model || !res.model.border) return null;
+      const b: number[] = res.model.border;
+      const left = Math.round(Math.min(b[0], b[2], b[4], b[6]));
+      const right = Math.round(Math.max(b[0], b[2], b[4], b[6]));
+      const top = Math.round(Math.min(b[1], b[3], b[5], b[7]));
+      const bottom = Math.round(Math.max(b[1], b[3], b[5], b[7]));
+      const width = Math.max(1, right - left);
+      const height = Math.max(1, bottom - top);
+      return {
+        x: left,
+        y: top,
+        left,
+        top,
+        right,
+        bottom,
+        width,
+        height,
+      };
+    } catch {
+      return null;
+    }
   }
 
   /**
