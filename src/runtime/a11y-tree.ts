@@ -204,10 +204,9 @@ export class A11ySnapshot {
    */
   getRootOverview(): string {
     const lines: string[] = [];
-    lines.push(`【网页无障碍概览 (A11y Overview)】`);
-    lines.push(`URL: ${this.url}`);
-    lines.push(`Title: ${this.title}`);
-    lines.push(`Total Interactive Nodes: ${this.allInteractiveElements.length}`);
+    lines.push(`【无障碍地标结构概览 (Root Overview) - 共 ${this.rootBoxes.length} 个顶级结构容器】`);
+    lines.push(`页面: ${this.title || "无标题"} (${this.url || "无URL"})`);
+    lines.push(`总交互元素数: ${this.allInteractiveElements.length}\n`);
 
     if (this.activeDialogs.length > 0) {
       lines.push(`\n🚨 检测到活动模态弹窗 (Active Modal Dialogs):`);
@@ -216,10 +215,14 @@ export class A11ySnapshot {
       }
     }
 
-    lines.push(`\n📦 最外层结构容器 (Landmark Containers):`);
-    for (const b of this.rootBoxes) {
-      const summary = this.summarizeBox(b);
-      lines.push(`  * [${b.ref}] <${b.role}> "${b.name || b.description || "无名称"}" ${summary}`);
+    if (this.rootBoxes.length === 0) {
+      lines.push(`  (当前页面为空白或未加载内容，若需要访问目标网站，请调用 navigate({ url: "..." }) 导航到目标地址)\n`);
+    } else {
+      lines.push(`顶级容器列表:`);
+      for (const b of this.rootBoxes) {
+        const summary = this.summarizeBox(b);
+        lines.push(`  * [${b.ref}] <${b.role}> "${b.name || b.description || "无名称"}" ${summary}`);
+      }
     }
 
     lines.push(`\n💡 寻路提示:`);

@@ -75,15 +75,17 @@ export class AgentKernel {
 Your task: "${prompt}".
 
 ### Operational Architecture (Continuous DFS Hierarchical Exploration):
-1. Cognitive Search (No DOM Mutations):
+1. Autonomous Navigation:
+   - If the current page is empty (e.g. about:blank) or the user's task asks to open/visit a specific website or URL (e.g. "打开 github.com/trending", "前往百度"), call navigate({ url: "...", intent: "..." }). S2 autonomously determines destination URLs without brittle regex.
+2. Cognitive Search (No DOM Mutations):
    - You start at the Root Landmark overview.
    - Use find_in_tree({ keyword: "..." }) to immediately locate target keywords (like application names, namespaces, or action verbs) anywhere in the page.
    - Use zoom_in({ containerRef: "bX", intent: "..." }) to drill down into a landmark container (e.g. main workspace, table, modal dialog).
    - If a container does NOT have what you need, use back_to_parent({ reason: "..." }) or exit_to_root({ reason: "..." }) (Exit Node). The system records your dead-end history so you never repeat mistakes.
-2. Physical Action Execution (DOM Mutations):
+3. Physical Action Execution (DOM Mutations):
    - When you have located the target interactive element (e.g. e10), call act({ elementRef: "e10", action: "click" | "type", intent: "..." }).
    - Real CDP click / input events will be executed with human-like curves.
-3. Conclude:
+4. Conclude:
    - When the overall task is verified complete, call finish({ summary: "..." }).`,
       prompt: `${getSystemContext()}\n\n${getCurrentViewText()}`,
       stopWhen: isStepCount(config.maxSteps || 15),
@@ -92,6 +94,65 @@ Your task: "${prompt}".
         hooks.onLog?.("S2思考", "info", `🧠 S2 正在推理决策第 ${stepNumber} 步动作...`);
       },
       tools: {
+        navigate: tool({
+          description: "Navigate current tab to a specified URL. Use when current page is blank, or the task requires visiting an external site or link.",
+          inputSchema: z.object({
+            url: z.string().describe("Target URL, e.g. https://www.google.com or https://github.com/trending"),
+            intent: z.string().describe("Reason for navigation, e.g. 打开目标网址"),
+          }),
+          execute: async ({ url, intent }: { url: string; intent: string }) => {
+            stepCount++;
+            const beforeUrl = snapshot.url;
+            const beforeTitle = snapshot.title;
+
+            let targetUrl = url.trim();
+            if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://") && !targetUrl.startsWith("about:")) {
+              targetUrl = `https://${targetUrl}`;
+            }
+
+            hooks.onLog?.(`步骤 ${stepCount}`, "info", `🌐 页面导航: ${intent} ➔ ${targetUrl}`);
+
+            await cdp.navigate(targetUrl);
+            await sleep(2500);
+
+            try {
+              await chrome.scripting.executeScript({
+                target: { tabId, allFrames: true },
+                files: ["content.js"],
+              });
+              await sleep(300);
+            } catch {}
+
+            snapshot = await A11yTreeService.captureSnapshot(cdp, tabId);
+            currentFocusRef = "root";
+            breadcrumbs.length = 1;
+
+            const deltaDesc = `页面导航至: ${snapshot.url} (${snapshot.title || "无标题"})`;
+
+            trace.push({
+              step: stepCount,
+              intent,
+              action: {
+                type: "navigate",
+                elementDescription: `Navigate to ${targetUrl}`,
+                text: targetUrl,
+              },
+              before: { url: beforeUrl, title: beforeTitle },
+              after: { url: snapshot.url, title: snapshot.title },
+              stateDelta: deltaDesc,
+            });
+
+            return {
+              url: snapshot.url,
+              title: snapshot.title,
+              landmarksCount: snapshot.rootBoxes.length,
+              interactiveCount: snapshot.allInteractiveElements.length,
+              view: getCurrentViewText(),
+              hint: "Navigation completed. Check the updated page view and proceed with exploration.",
+            };
+          },
+        }),
+
         find_in_tree: tool({
           description: "Instantly search all nodes in the A11y Tree by keyword (e.g. application name, namespace, or verb)",
           inputSchema: z.object({

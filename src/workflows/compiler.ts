@@ -26,6 +26,7 @@ The runtime automatically snapshots a Phase Checkpoint at the entry of each ctx.
   * If verifying overall semantic completion: use await ctx.successCheck("goal description")
 - await ctx.rollback(targetCheckpoint?): Explicitly rolls back browser navigation to the phase checkpoint.
 - await ctx.heal(subgoal?): Explicitly invokes Jev autonomous self-healing on current DOM state.
+- await ctx.navigate(url: string): Navigates the tab to a target URL (e.g. if the workflow begins by visiting an external URL).
 - ctx.log(message: string): Emits a user-facing log message.
 - await ctx.wait(ms: number): Pause if necessary.
 - await ctx.getPage(): Retrieves current page state.
@@ -155,7 +156,7 @@ ${transitions
     transitions: TraceStep[]
   ): WorkflowDefinition {
     const lines: string[] = [
-      `const { jev, successCheck, phase, log } = ctx;`,
+      `const { jev, successCheck, phase, log, navigate } = ctx;`,
       ``,
       `log(${JSON.stringify(`🚀 启动自动化工作流: ${prompt}`)});`,
       ``,
@@ -165,7 +166,11 @@ ${transitions
       const t = transitions[i];
       lines.push(`phase(${JSON.stringify(t.intent)});`);
       lines.push(`log(${JSON.stringify(`正在执行: ${t.intent}...`)});`);
-      lines.push(`await jev(${JSON.stringify(t.intent)});`);
+      if (t.action.type === "navigate") {
+        lines.push(`await navigate(${JSON.stringify(t.action.text || t.after.url)});`);
+      } else {
+        lines.push(`await jev(${JSON.stringify(t.intent)});`);
+      }
 
       if (t.guard) {
         lines.push(`await successCheck(${JSON.stringify(t.guard)}, { timeout: 3500 });`);

@@ -260,6 +260,22 @@ export class WorkflowRunner {
       log: (message: string) => hooks.onLog?.("Workflow", "info", message),
       getPage: async () => fetchPage(),
       wait: async (ms: number) => sleep(ms),
+      navigate: async (url: string) => {
+        let targetUrl = url.trim();
+        if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://") && !targetUrl.startsWith("about:")) {
+          targetUrl = `https://${targetUrl}`;
+        }
+        hooks.onLog?.("Workflow", "info", `🌐 页面导航 ➔ ${targetUrl}`);
+        await cdp.navigate(targetUrl);
+        await sleep(2500);
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId, allFrames: true },
+            files: ["content.js"],
+          });
+          await sleep(300);
+        } catch {}
+      },
       scroll: async (dy: number) => cdp.scroll(dy),
       step: (_label?: string) => {},
       args,

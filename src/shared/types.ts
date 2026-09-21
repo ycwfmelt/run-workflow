@@ -138,12 +138,13 @@ export interface PageState {
 export type MessagePayload =
   | { type: "EXTRACT_DOM" }
   | { type: "EXTRACT_DOM_RESULT"; state: PageState }
-  | { type: "DIAGNOSE_PAGE" }
+  | { type: "DIAGNOSE_PAGE"; targetTab?: "current" | number }
   | { type: "DIAGNOSE_PAGE_RESULT"; diagnostics: DiagnosticsInfo }
   | { type: "HIGHLIGHT_ELEMENT"; elementId: string }
   | { type: "CLEAR_HIGHLIGHTS" }
   | { type: "TOGGLE_OVERLAY"; visible: boolean }
-  | { type: "START_TASK"; prompt: string }
+  | { type: "START_TASK"; prompt: string; targetTab?: "current" | "new" | number }
+  | { type: "START_WORKFLOW"; workflowId: string; args?: any; targetTab?: "current" | "new" | number }
   | { type: "PAUSE_TASK" }
   | { type: "RESUME_TASK" }
   | { type: "STOP_TASK" }

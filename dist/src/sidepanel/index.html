@@ -49,11 +49,20 @@
 
     <!-- Task Input Card -->
     <div class="card">
-      <div class="card-title">任务目标</div>
+      <div class="card-title">
+        <span>任务目标</span>
+        <div style="display: flex; align-items: center; gap: 4px; text-transform: none; font-weight: normal;">
+          <select id="targetTabSelect" style="max-width: 145px; font-size: 11px; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border); background: #ffffff; color: var(--text-secondary); outline: none; cursor: pointer;" title="选择执行自动化任务的目标标签页">
+            <option value="current">当前标签页</option>
+            <option value="new">+ 新建空白标签页</option>
+          </select>
+          <button id="refreshTabsBtn" class="btn-icon" title="刷新标签页列表" style="padding: 2px 5px; font-size: 10px; line-height: 1; border-radius: 4px;">🔄</button>
+        </div>
+      </div>
       <textarea id="taskPrompt" placeholder="输入自动化任务，例如：在 Google 搜索 typesafe ai 并点击第一条结果..."></textarea>
       <div class="btn-group">
         <button id="startBtn" class="btn-primary">启动自动化</button>
-        <button id="diagnoseBtn" class="btn-secondary" title="扫描当前网页的 Iframe、Shadow DOM 及交互元素">页面诊断</button>
+        <button id="diagnoseBtn" class="btn-secondary" title="扫描目标网页的 Iframe、Shadow DOM 及交互元素">页面诊断</button>
         <button id="pauseBtn" class="btn-secondary" style="display: none;">暂停</button>
         <button id="resumeBtn" class="btn-secondary" style="display: none;">继续</button>
         <button id="stopBtn" class="btn-danger" style="display: none;">停止</button>

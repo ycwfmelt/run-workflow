@@ -5,7 +5,7 @@ export interface TraceStep {
   step: number;
   intent: string;
   action: {
-    type: "click" | "type" | "scroll";
+    type: "click" | "type" | "scroll" | "navigate";
     elementId?: string;
     elementDescription?: string;
     text?: string;

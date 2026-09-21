@@ -131,11 +131,20 @@ export class AgentLoop {
   }
 
   private async requestPageState(tabId: number): Promise<PageState> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       chrome.tabs.sendMessage(tabId, { type: "EXTRACT_DOM" }, (res) => {
-        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
-        else if (res?.state) resolve(res.state);
-        else reject(new Error("提取页面状态失败"));
+        if (!chrome.runtime.lastError && res?.state) {
+          return resolve(res.state);
+        }
+        chrome.tabs.get(tabId, (tab) => {
+          resolve({
+            url: tab?.url || "about:blank",
+            title: tab?.title || "空白页",
+            viewport: { width: 1280, height: 800, scrollX: 0, scrollY: 0 },
+            activeModal: undefined,
+            elements: [],
+          });
+        });
       });
     });
   }

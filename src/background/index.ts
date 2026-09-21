@@ -135,6 +135,25 @@ chrome.action.onClicked.addListener(async (tab) => {
   }
 });
 
+async function resolveTargetTab(targetTab?: "current" | "new" | number, allowNew = false): Promise<number> {
+  if (allowNew && targetTab === "new") {
+    const newTab = await chrome.tabs.create({ url: "about:blank", active: true });
+    await new Promise((r) => setTimeout(r, 600));
+    if (newTab.id) return newTab.id;
+  }
+  if (typeof targetTab === "number") {
+    return targetTab;
+  }
+  const [activeTab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+  if (!activeTab?.id) {
+    throw new Error("No target tab found");
+  }
+  return activeTab.id;
+}
+
 // Message listener from Side Panel / Content script / Offscreen document
 chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
   if (message.type && message.type.startsWith("OFFSCREEN_")) {
@@ -156,28 +175,14 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
         return result;
       }
       case "START_TASK": {
-        // Query active tab
-        const [activeTab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        if (!activeTab || !activeTab.id) {
-          throw new Error("No active tab found");
-        }
-        // Start running task asynchronously
-        agentLoop!.startTask(activeTab.id, message.prompt);
-        return { success: true };
+        const tabId = await resolveTargetTab(message.targetTab, true);
+        agentLoop!.startTask(tabId, message.prompt);
+        return { success: true, tabId };
       }
       case "START_WORKFLOW": {
-        const [activeTab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        if (!activeTab || !activeTab.id) {
-          throw new Error("No active tab found");
-        }
-        agentLoop!.startWorkflow(activeTab.id, message.workflowId, message.args);
-        return { success: true };
+        const tabId = await resolveTargetTab(message.targetTab, true);
+        agentLoop!.startWorkflow(tabId, message.workflowId, message.args);
+        return { success: true, tabId };
       }
       case "GET_MATCHING_WORKFLOWS": {
         const [activeTab] = await chrome.tabs.query({
@@ -237,23 +242,17 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
         };
       }
       case "DIAGNOSE_PAGE": {
-        const [activeTab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        if (!activeTab || !activeTab.id) {
-          throw new Error("No active tab found");
-        }
+        const tabId = await resolveTargetTab(message.targetTab, false);
         try {
           await chrome.scripting.executeScript({
-            target: { tabId: activeTab.id, allFrames: true },
+            target: { tabId, allFrames: true },
             files: ["content.js"],
           });
         } catch (e) {}
 
         return new Promise((resolve, reject) => {
           chrome.tabs.sendMessage(
-            activeTab.id!,
+            tabId,
             { type: "DIAGNOSE_PAGE" },
             (res) => {
               if (chrome.runtime.lastError) {

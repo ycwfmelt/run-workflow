@@ -22,6 +22,66 @@ const closeDebugBtn = document.getElementById("closeDebugBtn") as HTMLButtonElem
 const diagnoseResult = document.getElementById("diagnoseResult") as HTMLElement;
 let currentDiagnosticsText = "";
 
+const targetTabSelect = document.getElementById("targetTabSelect") as HTMLSelectElement;
+const refreshTabsBtn = document.getElementById("refreshTabsBtn") as HTMLButtonElement;
+
+async function refreshTargetTabs() {
+  if (!targetTabSelect) return;
+  const previousValue = targetTabSelect.value;
+
+  try {
+    const tabs = await chrome.tabs.query({ currentWindow: true });
+    targetTabSelect.innerHTML = "";
+
+    const activeTab = tabs.find((t) => t.active);
+    const activeTitle = activeTab?.title
+      ? activeTab.title.length > 15
+        ? activeTab.title.slice(0, 15) + "..."
+        : activeTab.title
+      : "当前";
+
+    const optCurrent = document.createElement("option");
+    optCurrent.value = "current";
+    optCurrent.textContent = `当前 (${activeTitle})`;
+    targetTabSelect.appendChild(optCurrent);
+
+    const optNew = document.createElement("option");
+    optNew.value = "new";
+    optNew.textContent = "+ 新建空白标签页";
+    targetTabSelect.appendChild(optNew);
+
+    tabs.forEach((tab) => {
+      if (!tab.id) return;
+      const opt = document.createElement("option");
+      opt.value = String(tab.id);
+      const title = tab.title
+        ? tab.title.length > 16
+          ? tab.title.slice(0, 16) + "..."
+          : tab.title
+        : `标签页 #${tab.index + 1}`;
+      opt.textContent = `#${tab.index + 1}: ${title}${tab.active ? " (当前)" : ""}`;
+      targetTabSelect.appendChild(opt);
+    });
+
+    if (previousValue && Array.from(targetTabSelect.options).some((o) => o.value === previousValue)) {
+      targetTabSelect.value = previousValue;
+    } else {
+      targetTabSelect.value = "current";
+    }
+  } catch (err) {
+    console.warn("Failed to query tabs for targetTabSelect:", err);
+  }
+}
+
+function getSelectedTargetTab(): "current" | "new" | number {
+  if (!targetTabSelect) return "current";
+  const val = targetTabSelect.value;
+  if (val === "new") return "new";
+  if (val === "current") return "current";
+  const num = parseInt(val, 10);
+  return isNaN(num) ? "current" : num;
+}
+
 const workflowsCard = document.getElementById("workflowsCard") as HTMLElement;
 const workflowList = document.getElementById("workflowList") as HTMLElement;
 
@@ -259,12 +319,29 @@ async function init() {
     }
   });
 
+  // Populate target tab dropdown
+  await refreshTargetTabs();
+
   // Load matching workflows for active tab
   loadMatchingWorkflows();
 
   // Actively check S2 / Ollama health status
   checkS2Status();
 }
+
+refreshTabsBtn?.addEventListener("click", () => refreshTargetTabs());
+
+chrome.tabs?.onActivated?.addListener(() => {
+  refreshTargetTabs();
+  loadMatchingWorkflows();
+});
+
+chrome.tabs?.onUpdated?.addListener((_tabId, changeInfo) => {
+  if (changeInfo.title || changeInfo.url) {
+    refreshTargetTabs();
+    loadMatchingWorkflows();
+  }
+});
 
 async function loadMatchingWorkflows() {
   try {
@@ -302,9 +379,11 @@ async function loadMatchingWorkflows() {
         `;
 
         item.querySelector(".run-wf-btn")?.addEventListener("click", () => {
+          const targetTab = getSelectedTargetTab();
           chrome.runtime.sendMessage({
             type: "START_WORKFLOW",
             workflowId: wf.id,
+            targetTab,
           });
         });
 
@@ -339,7 +418,8 @@ startBtn.addEventListener("click", () => {
     return;
   }
   saveWorkflowBanner.style.display = "none";
-  chrome.runtime.sendMessage({ type: "START_TASK", prompt }, (res) => {
+  const targetTab = getSelectedTargetTab();
+  chrome.runtime.sendMessage({ type: "START_TASK", prompt, targetTab }, (res) => {
     if (res && res.error) {
       alert(`启动失败: ${res.error}`);
     }
@@ -363,8 +443,9 @@ diagnoseBtn.addEventListener("click", () => {
     debugCard.style.display = "block";
     debugCard.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
-  diagnoseResult.textContent = "正在深度扫描当前标签页 DOM、Iframes 及 Shadow Roots...";
-  chrome.runtime.sendMessage({ type: "DIAGNOSE_PAGE" }, (response) => {
+  const targetTab = getSelectedTargetTab();
+  diagnoseResult.textContent = "正在深度扫描目标标签页 DOM、Iframes 及 Shadow Roots...";
+  chrome.runtime.sendMessage({ type: "DIAGNOSE_PAGE", targetTab: targetTab === "new" ? "current" : targetTab }, (response) => {
     if (chrome.runtime.lastError) {
       diagnoseResult.textContent = `诊断失败: ${chrome.runtime.lastError.message}`;
       return;
