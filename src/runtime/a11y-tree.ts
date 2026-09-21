@@ -48,6 +48,10 @@ const CONTAINER_ROLES = new Set([
   "menu",
   "menubar",
   "group",
+  "list",
+  "listbox",
+  "tree",
+  "toolbar",
   "rootwebarea",
   "webarea",
 ]);
@@ -67,6 +71,7 @@ const INTERACTIVE_ROLES = new Set([
   "tab",
   "option",
   "treeitem",
+  "listitem",
   "slider",
   "spinbutton",
 ]);
@@ -109,7 +114,11 @@ export class A11ySnapshot {
       if (isContainer) {
         const ref = `b${boxCounter++}`;
         rawIdToRef.set(raw.nodeId, ref);
-      } else if (isInteractive || (name && (isFocusable || hasPopup))) {
+      } else if (
+        isInteractive ||
+        (name && (isFocusable || hasPopup)) ||
+        (name && raw.backendDOMNodeId && !["inlinetextbox", "none"].includes(role))
+      ) {
         const ref = `e${elemCounter++}`;
         rawIdToRef.set(raw.nodeId, ref);
       } else if (name && (role === "cell" || role === "gridcell" || role === "heading")) {
