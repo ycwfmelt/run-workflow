@@ -36,12 +36,8 @@ export class AgentKernel {
     const apiKey = config.systemTwoApiKey || config.typesafeApiKey || "ollama";
     const s2Client = createOpenAI({ baseURL: endpoint, apiKey });
 
-    // 1. Proactively activate and wake up target tab to prevent background tab sleep/freeze
-    await chrome.tabs.update(tabId, { active: true }).catch(() => {});
-    await cdp.sendCommand("Page.bringToFront").catch(() => {});
-
     hooks.onLog?.("Supervisor", "info", `🤖 S2 模型原生 A11y 树自主循环启动: "${prompt}"`);
-    hooks.onLog?.("A11y扫描", "info", "正在抓取浏览器原生无障碍语义树 (AXTree)...");
+    hooks.onLog?.("A11y扫描", "info", "正在抓取目标页面原生无障碍语义树 (AXTree)...");
 
     // Capture initial native A11y Snapshot
     let snapshot = await A11yTreeService.captureSnapshot(cdp, tabId);
@@ -212,10 +208,6 @@ Your task: "${prompt}".
             stepCount++;
             const beforeUrl = snapshot.url;
             const beforeTitle = snapshot.title;
-
-            // Auto wake up and focus target tab to prevent background tab sleep/freeze
-            await chrome.tabs.update(tabId, { active: true }).catch(() => {});
-            await cdp.sendCommand("Page.bringToFront").catch(() => {});
 
             // 1. Scroll action
             if (action === "scroll") {
