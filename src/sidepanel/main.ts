@@ -444,8 +444,8 @@ stopBtn.addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "STOP_TASK" });
 });
 
-function sendUserGuidance(customText?: string) {
-  const text = (customText !== undefined ? customText : guidanceInput?.value || "").trim();
+function sendUserGuidance() {
+  const text = (guidanceInput?.value || "").trim();
   if (!text) return;
 
   chrome.runtime.sendMessage({ type: "INJECT_GUIDANCE", guidance: text }, (res) => {
@@ -456,7 +456,7 @@ function sendUserGuidance(customText?: string) {
     if (guidanceInput) guidanceInput.value = "";
     if (guidanceBadge) guidanceBadge.style.display = "none";
     if (guidanceSubtext) {
-      guidanceSubtext.textContent = "✓ 指引已成功注入下一决策步";
+      guidanceSubtext.textContent = "✓ 指引已注入模型下一决策步";
       guidanceSubtext.style.color = "#059669";
       setTimeout(() => {
         if (guidanceSubtext) {
@@ -475,13 +475,6 @@ guidanceInput?.addEventListener("keydown", (e) => {
     e.preventDefault();
     sendUserGuidance();
   }
-});
-
-document.querySelectorAll(".quick-hint-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const hint = btn.getAttribute("data-hint");
-    if (hint) sendUserGuidance(hint);
-  });
 });
 
 diagnoseBtn.addEventListener("click", () => {
