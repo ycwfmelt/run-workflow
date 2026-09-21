@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>Ang 全局参数配置</title>
-  <style>:root{--bg-primary:#0f172a;--bg-secondary:#1e293b;--bg-accent:#334155;--text-primary:#f8fafc;--text-muted:#94a3b8;--primary:#8b5cf6;--primary-hover:#7c3aed;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--border:#334155}body{background-color:var(--bg-primary);color:var(--text-primary);max-width:760px;margin:0 auto;padding:36px 20px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;line-height:1.5}.header-area{margin-bottom:24px}h1{color:#f8fafc;align-items:center;gap:10px;margin-bottom:6px;font-size:22px;display:flex}.badge-s1{color:#fff;background:linear-gradient(135deg,#a855f7,#6366f1);border-radius:9999px;padding:2px 8px;font-size:11px;font-weight:600}.subtitle{color:var(--text-muted);font-size:13px}.section{background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;margin-bottom:20px;padding:20px}.section-title{color:#cbd5e1;border-bottom:1px solid var(--border);justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:10px;font-size:14px;font-weight:600;display:flex}.section-tag{border-radius:4px;padding:2px 8px;font-size:11px;font-weight:500}.tag-primary{color:#c7d2fe;background:#312e81}.tag-success{color:#a7f3d0;background:#064e3b}.tag-neutral{color:#94a3b8;background:#334155}.form-group{margin-bottom:16px}label{color:#cbd5e1;margin-bottom:6px;font-size:12px;font-weight:500;display:block}.label-hint{color:var(--text-muted);margin-left:6px;font-weight:400}.input-wrapper{align-items:center;display:flex;position:relative}input[type=text],input[type=password],select{background:var(--bg-primary);border:1px solid var(--border);width:100%;color:var(--text-primary);box-sizing:border-box;border-radius:6px;outline:none;padding:9px 12px;font-size:13px;transition:border-color .15s}input:focus,select:focus{border-color:var(--primary)}.toggle-pwd-btn{color:var(--text-muted);cursor:pointer;background:0 0;border:none;border-radius:4px;padding:4px 6px;font-size:14px;position:absolute;right:8px}.toggle-pwd-btn:hover{color:var(--text-primary)}.desc-text{color:var(--text-muted);margin-top:5px;font-size:11px;line-height:1.4}.feature-pills{flex-wrap:wrap;gap:6px;margin-top:10px;display:flex}.feature-pill{color:#94a3b8;background:#0b1120;border:1px solid #1e293b;border-radius:6px;padding:4px 8px;font-size:11px}.btn-group-footer{align-items:center;gap:12px;margin-top:24px;display:flex}button.btn-save{background:var(--primary);color:#fff;cursor:pointer;border:none;border-radius:6px;padding:10px 24px;font-size:13px;font-weight:600;transition:background .15s}button.btn-save:hover{background:var(--primary-hover)}button.btn-secondary{background:var(--bg-accent);color:#cbd5e1;border:1px solid var(--border);cursor:pointer;border-radius:6px;padding:9px 16px;font-size:13px}button.btn-secondary:hover{color:#fff;background:#475569}#status{color:var(--success);font-size:13px;font-weight:500}.test-feedback{border-radius:4px;margin-top:8px;padding:6px 10px;font-size:11px;display:none}.feedback-ok{color:#6ee7b7;background:#064e3b;border:1px solid #059669}.feedback-warn{color:#fde68a;background:#451a03;border:1px solid #b45309}.wf-card{background:#0b1120;border:1px solid #1e293b;border-radius:8px;padding:16px;transition:all .2s}.wf-card:hover{border-color:#475569}.wf-card-header{justify-content:space-between;align-items:center;margin-bottom:12px;display:flex}.tag-custom{color:#6ee7b7;background:#064e3b;border:1px solid #059669;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600}.code-textarea{color:#a5f3fc;resize:vertical;white-space:pre;tab-size:2;box-sizing:border-box;background:#030712;border:1px solid #1e293b;border-radius:6px;outline:none;width:100%;height:180px;margin-top:6px;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11.5px;line-height:1.5}.code-textarea:focus{border-color:var(--primary)}</style>
+  <style>:root{--bg-primary:#f8fafc;--bg-card:#fff;--bg-muted:#f1f5f9;--text-primary:#0f172a;--text-secondary:#334155;--text-muted:#64748b;--text-subtle:#94a3b8;--primary:#0f172a;--primary-hover:#1e293b;--accent:#4f46e5;--accent-hover:#4338ca;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--border:#e2e8f0;--border-subtle:#f1f5f9;--shadow-xs:0 1px 2px 0 #0f172a0a;--shadow-sm:0 1px 3px 0 #0f172a0f, 0 1px 2px -1px #0f172a0a;--shadow-md:0 4px 6px -1px #0f172a0f, 0 2px 4px -2px #0f172a0a}*{box-sizing:border-box;-webkit-font-smoothing:antialiased;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif}::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:0 0}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px}::-webkit-scrollbar-thumb:hover{background:#94a3b8}body{background-color:var(--bg-primary);color:var(--text-primary);max-width:780px;margin:0 auto;padding:36px 20px;line-height:1.5}.header-area{margin-bottom:24px}h1{color:var(--text-primary);letter-spacing:-.01em;align-items:center;gap:10px;margin-bottom:6px;font-size:22px;font-weight:700;display:flex}.badge-s1{color:#fff;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:9999px;padding:2px 8px;font-size:11px;font-weight:600;box-shadow:0 1px 2px #6366f133}.subtitle{color:var(--text-muted);font-size:13px}.section{background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow-sm);border-radius:12px;margin-bottom:20px;padding:22px}.section-title{color:var(--text-primary);border-bottom:1px solid var(--border-subtle);justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;font-size:14px;font-weight:600;display:flex}.section-tag{border-radius:9999px;padding:2px 8px;font-size:11px;font-weight:600}.tag-primary{color:#3730a3;background:#e0e7ff;border:1px solid #c7d2fe}.tag-success{color:#047857;background:#ecfdf5;border:1px solid #a7f3d0}.tag-neutral{color:#475569;background:#f1f5f9;border:1px solid #e2e8f0}.form-group{margin-bottom:16px}label{color:var(--text-secondary);margin-bottom:6px;font-size:12.5px;font-weight:600;display:block}.label-hint{color:var(--text-muted);margin-left:6px;font-weight:400}.input-wrapper{align-items:center;display:flex;position:relative}input[type=text],input[type=password],select{border:1px solid var(--border);width:100%;color:var(--text-primary);box-sizing:border-box;box-shadow:var(--shadow-xs);background:#fff;border-radius:8px;outline:none;padding:9px 12px;font-size:13px;transition:all .15s}input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px #4f46e51f}.toggle-pwd-btn{color:var(--text-muted);cursor:pointer;background:0 0;border:none;border-radius:4px;padding:4px 6px;font-size:14px;transition:color .15s;position:absolute;right:8px}.toggle-pwd-btn:hover{color:var(--text-primary)}.desc-text{color:var(--text-muted);margin-top:5px;font-size:11.5px;line-height:1.45}.feature-pills{flex-wrap:wrap;gap:8px;margin-top:10px;display:flex}.feature-pill{border:1px solid var(--border);color:var(--text-secondary);background:#f8fafc;border-radius:8px;padding:5px 10px;font-size:11.5px;font-weight:500}.btn-group-footer{align-items:center;gap:12px;margin-top:24px;display:flex}button.btn-save{background:var(--primary);color:#fff;border:1px solid var(--primary);cursor:pointer;box-shadow:var(--shadow-xs);border-radius:8px;padding:10px 22px;font-size:13px;font-weight:600;transition:all .15s}button.btn-save:hover{background:var(--primary-hover);border-color:var(--primary-hover)}button.btn-save:active{transform:scale(.98)}button.btn-secondary{color:var(--text-secondary);border:1px solid var(--border);cursor:pointer;box-shadow:var(--shadow-xs);background:#fff;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:500;transition:all .15s}button.btn-secondary:hover{background:var(--bg-muted);color:var(--text-primary);border-color:#cbd5e1}button.btn-secondary:active{transform:scale(.98)}#status{color:var(--success);font-size:13px;font-weight:600}.test-feedback{border-radius:6px;margin-top:8px;padding:7px 12px;font-size:11.5px;display:none}.feedback-ok{color:#047857;background:#ecfdf5;border:1px solid #a7f3d0}.feedback-warn{color:#b45309;background:#fffbeb;border:1px solid #fde68a}.wf-card{border:1px solid var(--border);box-shadow:var(--shadow-xs);background:#fff;border-radius:10px;padding:16px;transition:all .15s}.wf-card:hover{box-shadow:var(--shadow-sm);border-color:#cbd5e1}.wf-card-header{justify-content:space-between;align-items:center;margin-bottom:12px;display:flex}.tag-custom{color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:9999px;padding:2px 8px;font-size:10px;font-weight:600}.code-textarea{color:#f8fafc;resize:vertical;white-space:pre;tab-size:2;box-sizing:border-box;background:#090d16;border:1px solid #1e293b;border-radius:8px;outline:none;width:100%;height:180px;margin-top:6px;padding:10px 12px;font-family:JetBrains Mono,ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11.5px;line-height:1.55}.code-textarea:focus{border-color:#6366f1;box-shadow:0 0 0 3px #6366f126}</style>
   <script type="module" crossorigin src="../../assets/options.js"></script>
 </head>
 <body>
   <div class="header-area">
     <h1>
-      <svg width="26" height="26" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 6px; flex-shrink: 0;">
-        <rect width="128" height="128" rx="28" fill="#090d16"/>
+      <svg width="26" height="26" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 6px; flex-shrink: 0; box-shadow: var(--shadow-xs);">
+        <rect width="128" height="128" rx="28" fill="#0f172a"/>
         <path d="M34 94 L64 28 L94 94" stroke="url(#opt-accent)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
         <line x1="47" y1="68" x2="81" y2="68" stroke="url(#opt-accent)" stroke-width="8" stroke-linecap="round"/>
         <circle cx="64" cy="46" r="3.5" fill="#38bdf8"/>
@@ -76,12 +76,12 @@
 
     <div class="form-group">
       <label>规划引擎 Provider (已固定):</label>
-      <input type="text" value="Ollama (本地/私有大模型服务)" disabled style="background: #172033; color: #94a3b8; cursor: not-allowed;" />
+      <input type="text" value="Ollama (本地/私有大模型服务)" disabled style="background: #f8fafc; color: #64748b; cursor: not-allowed; border-color: #e2e8f0;" />
     </div>
 
     <div class="form-group">
       <label>模型名称 Model (已固定):</label>
-      <input type="text" id="systemTwoModel" value="deepseek-v4.1-flash:cloud" readonly style="background: #172033; color: #93c5fd; font-family: monospace; font-weight: 500;" />
+      <input type="text" id="systemTwoModel" value="deepseek-v4.1-flash:cloud" readonly style="background: #f8fafc; color: #4f46e5; font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 600; border-color: #e2e8f0;" />
     </div>
 
     <div class="form-group">
@@ -104,7 +104,7 @@
       <span class="section-tag tag-success">固定全量启用 ✓</span>
     </div>
 
-    <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6;">
+    <div style="font-size: 12.5px; color: #334155; line-height: 1.6;">
       系统已永久锁定开启真实人类行为仿真。通过 Chrome DevTools Protocol 硬件输入层模拟，彻底规避各类企业系统及第三方反自动化风控检测：
     </div>
 
@@ -129,12 +129,12 @@
     </div>
 
     <!-- Match Rule Helper & Tester -->
-    <div style="background: #0b1120; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
-      <div style="font-weight: 600; font-size: 12px; color: #cbd5e1; margin-bottom: 6px; display: flex; justify-content: space-between;">
+    <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+      <div style="font-weight: 600; font-size: 12px; color: #0f172a; margin-bottom: 6px; display: flex; justify-content: space-between;">
         <span>🎯 URL 匹配规则说明与实时测试器</span>
-        <span style="font-size: 11px; color: #818cf8;">支持 4 种匹配语法</span>
+        <span style="font-size: 11px; color: #4f46e5; font-weight: 500;">支持 4 种匹配语法</span>
       </div>
-      <div style="font-size: 11px; color: #94a3b8; line-height: 1.6; margin-bottom: 10px;">
+      <div style="font-size: 11.5px; color: #64748b; line-height: 1.6; margin-bottom: 10px;">
         • <strong>* 或留空</strong>：全局适用（所有网址生效）<br>
         • <strong>域名/路径子串</strong>：如 <code>crm.example.com</code> 或 <code>github.com/pulls</code><br>
         • <strong>通配符 Glob</strong>：如 <code>*.example.com/*</code> 或 <code>https://*</code><br>
@@ -144,13 +144,13 @@
         <input type="text" id="testUrlInput" placeholder="输入测试网址，如: https://crm.example.com/#/dashboard" style="font-size: 12px; padding: 7px 10px;" />
         <button type="button" id="testUrlBtn" class="btn-secondary" style="white-space: nowrap; padding: 7px 12px; font-size: 12px;">测试匹配</button>
       </div>
-      <div id="testUrlResult" style="margin-top: 8px; font-size: 11px; color: #38bdf8; display: none; padding: 6px 10px; background: #030712; border-radius: 4px; border: 1px solid #1e293b;"></div>
+      <div id="testUrlResult" style="margin-top: 8px; font-size: 11.5px; color: #1e40af; display: none; padding: 8px 12px; background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe;"></div>
     </div>
 
     <!-- Workflow List Header -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-      <div style="font-size: 13px; font-weight: 600; color: #f8fafc;" id="workflowCountTitle">已配置工作流列表</div>
-      <button type="button" id="addNewWorkflowBtn" class="btn-secondary" style="background: #312e81; color: #c7d2fe; border-color: #4338ca; font-size: 12px; padding: 6px 12px; font-weight: 500;">
+      <div style="font-size: 13px; font-weight: 600; color: #0f172a;" id="workflowCountTitle">已配置工作流列表</div>
+      <button type="button" id="addNewWorkflowBtn" class="btn-primary" style="font-size: 12px; padding: 7px 14px; font-weight: 500;">
         ➕ 新建自定义工作流
       </button>
     </div>

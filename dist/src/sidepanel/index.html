@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ang</title>
-  <style>:root{--bg-primary:#0f172a;--bg-secondary:#1e293b;--bg-accent:#334155;--text-primary:#f8fafc;--text-muted:#94a3b8;--primary:#8b5cf6;--primary-hover:#7c3aed;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--border:#334155}*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}body{background-color:var(--bg-primary);color:var(--text-primary);flex-direction:column;height:100vh;font-size:13px;line-height:1.4;display:flex;overflow:hidden}header{background-color:var(--bg-secondary);border-bottom:1px solid var(--border);justify-content:space-between;align-items:center;padding:12px 14px;display:flex}.brand{align-items:center;gap:8px;font-size:14px;font-weight:600;display:flex}.brand-badge{text-transform:uppercase;letter-spacing:.5px;background:linear-gradient(135deg,#a855f7,#6366f1);border-radius:4px;padding:2px 6px;font-size:10px}.status-badge{background-color:var(--bg-accent);border-radius:9999px;padding:3px 8px;font-size:11px;font-weight:500}.status-idle{color:#94a3b8;background:#334155}.status-planning{color:#93c5fd;background:#1e3a8a}.status-running{color:#6ee7b7;background:#064e3b}.status-paused{color:#fcd34d;background:#78350f}.status-waiting_user{color:#f472b6;background:#831843}.status-completed{color:#34d399;background:#064e3b}.status-failed{color:#fca5a5;background:#7f1d1d}.s2-badge{cursor:pointer;user-select:none;border:1px solid #0000;border-radius:9999px;align-items:center;gap:5px;padding:3px 8px;font-size:11px;font-weight:500;transition:all .2s;display:inline-flex}.s2-badge:hover{filter:brightness(1.15)}.s2-status-dot{border-radius:50%;flex-shrink:0;width:6px;height:6px}.s2-online{color:#6ee7b7;background:#064e3b;border-color:#059669}.s2-online .s2-status-dot{background:#10b981;box-shadow:0 0 6px #10b981}.s2-offline{color:#fca5a5;background:#7f1d1d;border-color:#dc2626}.s2-offline .s2-status-dot{background:#ef4444}.s2-warn{color:#fcd34d;background:#78350f;border-color:#d97706}.s2-warn .s2-status-dot{background:#f59e0b}.s2-unknown{color:#94a3b8;background:#334155;border-color:#475569}.s2-unknown .s2-status-dot{background:#94a3b8}main{flex-direction:column;flex:1;gap:12px;padding:12px;display:flex;overflow-y:auto}.card{background-color:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px}.card-title{color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;justify-content:space-between;margin-bottom:8px;font-size:11px;font-weight:600;display:flex}textarea{background-color:var(--bg-primary);border:1px solid var(--border);width:100%;height:68px;color:var(--text-primary);resize:none;border-radius:6px;outline:none;padding:8px;font-size:12px}textarea:focus{border-color:var(--primary)}.btn-group{gap:6px;margin-top:8px;display:flex}button{cursor:pointer;border:none;border-radius:6px;justify-content:center;align-items:center;gap:5px;padding:7px 12px;font-size:12px;font-weight:500;transition:all .15s;display:inline-flex}.btn-primary{background-color:var(--primary);color:#fff;flex:1}.btn-primary:hover{background-color:var(--primary-hover)}.btn-secondary{background-color:var(--bg-accent);color:var(--text-primary)}.btn-secondary:hover{background-color:#475569}.btn-danger{color:#fecaca;background-color:#991b1b}.btn-danger:hover{background-color:#b91c1c}.confidence-meter{background:var(--bg-primary);border-radius:9999px;height:6px;margin:6px 0;overflow:hidden}.confidence-fill{background:var(--success);width:0%;height:100%;transition:width .3s}.log-list{flex-direction:column;gap:8px;max-height:280px;display:flex;overflow-y:auto}.log-item{background:var(--bg-primary);border-left:3px solid var(--primary);border-radius:6px;padding:8px;font-size:11px}.log-item.warning{border-left-color:var(--warning)}.log-item.error{border-left-color:var(--danger)}.log-item.success{border-left-color:var(--success)}.log-header{color:var(--text-muted);justify-content:space-between;margin-bottom:2px;font-size:10px;display:flex}.log-confidence{font-weight:600}.header-right{align-items:center;gap:8px;display:flex}.btn-icon{border:1px solid var(--border);color:var(--text-muted);cursor:pointer;background:0 0;border-radius:6px;justify-content:center;align-items:center;padding:4px 6px;font-size:13px;line-height:1;transition:all .15s;display:inline-flex}.btn-icon:hover{background:var(--bg-accent);color:var(--text-primary);border-color:var(--primary)}.api-key-banner{background:#451a03;border:1px solid #b45309;border-radius:8px;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;display:flex}.code-stepper-wrapper{background:#030712;border:1px solid #1e293b;border-radius:6px;max-height:180px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;line-height:1.6;position:relative;overflow-y:auto}.code-line-row{white-space:pre;padding:0 4px;transition:background .15s,border-color .15s;display:flex}.code-line-num{color:#475569;text-align:right;user-select:none;border-right:1px solid #1e293b;flex-shrink:0;width:28px;margin-right:6px;padding-right:6px}.code-line-text{color:#cbd5e1;flex:1;overflow-x:auto}.code-line-row.active-line{background:#6366f147;border-left:3px solid #818cf8;margin-left:-3px}.code-line-row.active-line .code-line-num{color:#818cf8;font-weight:700}.code-line-row.active-line .code-line-text{color:#fff;text-shadow:0 0 8px #818cf899;font-weight:600}</style>
+  <style>:root{--bg-primary:#f8fafc;--bg-card:#fff;--bg-muted:#f1f5f9;--text-primary:#0f172a;--text-secondary:#334155;--text-muted:#64748b;--text-subtle:#94a3b8;--primary:#0f172a;--primary-hover:#1e293b;--accent:#4f46e5;--accent-hover:#4338ca;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--border:#e2e8f0;--border-subtle:#f1f5f9;--shadow-xs:0 1px 2px 0 #0f172a0a;--shadow-sm:0 1px 3px 0 #0f172a0f, 0 1px 2px -1px #0f172a0a;--shadow-md:0 4px 6px -1px #0f172a0f, 0 2px 4px -2px #0f172a0a}*{box-sizing:border-box;-webkit-font-smoothing:antialiased;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:0 0}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px}::-webkit-scrollbar-thumb:hover{background:#94a3b8}body{background-color:var(--bg-primary);color:var(--text-primary);flex-direction:column;height:100vh;font-size:13px;line-height:1.45;display:flex;overflow:hidden}header{-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--border);z-index:10;background-color:#ffffffeb;justify-content:space-between;align-items:center;padding:12px 14px;display:flex;box-shadow:0 1px 2px #0f172a08}.brand{color:var(--text-primary);letter-spacing:-.01em;align-items:center;gap:8px;font-size:14.5px;font-weight:700;display:flex}.brand-badge{color:#fff;text-transform:uppercase;letter-spacing:.5px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:9999px;padding:2px 7px;font-size:10px;font-weight:600;box-shadow:0 1px 2px #6366f133}.status-badge{letter-spacing:.02em;border:1px solid #0000;border-radius:9999px;padding:3px 9px;font-size:11px;font-weight:600;transition:all .2s}.status-idle{color:#475569;background:#f1f5f9;border-color:#e2e8f0}.status-planning{color:#1d4ed8;background:#eff6ff;border-color:#bfdbfe}.status-running{color:#047857;background:#ecfdf5;border-color:#a7f3d0}.status-paused{color:#b45309;background:#fffbeb;border-color:#fde68a}.status-waiting_user{color:#be185d;background:#fdf2f8;border-color:#fbcfe8}.status-completed{color:#047857;background:#ecfdf5;border-color:#a7f3d0}.status-failed{color:#b91c1c;background:#fef2f2;border-color:#fecaca}.s2-badge{cursor:pointer;user-select:none;border:1px solid #0000;border-radius:9999px;align-items:center;gap:5px;padding:3px 9px;font-size:11px;font-weight:500;transition:all .15s;display:inline-flex}.s2-badge:hover{box-shadow:var(--shadow-xs);transform:translateY(-.5px)}.s2-status-dot{border-radius:50%;flex-shrink:0;width:6.5px;height:6.5px}.s2-online{color:#047857;background:#ecfdf5;border-color:#a7f3d0}.s2-online .s2-status-dot{background:#10b981;box-shadow:0 0 0 2px #10b98140}.s2-offline{color:#b91c1c;background:#fef2f2;border-color:#fecaca}.s2-offline .s2-status-dot{background:#ef4444}.s2-warn{color:#b45309;background:#fffbeb;border-color:#fde68a}.s2-warn .s2-status-dot{background:#f59e0b}.s2-unknown{color:#64748b;background:#f1f5f9;border-color:#e2e8f0}.s2-unknown .s2-status-dot{background:#94a3b8}main{flex-direction:column;flex:1;gap:12px;padding:14px;display:flex;overflow-y:auto}.card{background-color:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow-sm);border-radius:12px;padding:13px 14px;transition:border-color .15s,box-shadow .15s}.card:hover{border-color:#cbd5e1}.card-title{color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:11px;font-weight:600;display:flex}textarea{border:1px solid var(--border);width:100%;height:72px;color:var(--text-primary);resize:none;background-color:#fff;border-radius:8px;outline:none;padding:9px 11px;font-size:12.5px;line-height:1.5;transition:all .15s;box-shadow:inset 0 1px 2px #0f172a08}textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px #4f46e51f}textarea::placeholder{color:var(--text-subtle)}.btn-group{gap:8px;margin-top:10px;display:flex}button{cursor:pointer;user-select:none;border:none;border-radius:8px;justify-content:center;align-items:center;gap:6px;padding:8px 14px;font-size:12px;font-weight:500;transition:all .15s;display:inline-flex}button:active{transform:scale(.98)}.btn-primary{background-color:var(--primary);color:#fff;border:1px solid var(--primary);box-shadow:var(--shadow-xs);flex:1}.btn-primary:hover{background-color:var(--primary-hover);border-color:var(--primary-hover)}.btn-secondary{color:var(--text-secondary);border:1px solid var(--border);box-shadow:var(--shadow-xs);background-color:#fff}.btn-secondary:hover{background-color:var(--bg-muted);color:var(--text-primary);border-color:#cbd5e1}.btn-danger{color:#dc2626;background-color:#fef2f2;border:1px solid #fecaca}.btn-danger:hover{background-color:#fee2e2;border-color:#fca5a5}.confidence-meter{background:var(--bg-muted);border:1px solid var(--border);border-radius:9999px;height:6px;margin:8px 0 6px;overflow:hidden}.confidence-fill{background:var(--success);border-radius:9999px;width:0%;height:100%;transition:width .3s,background .3s}.log-list{flex-direction:column;gap:8px;max-height:280px;padding-right:2px;display:flex;overflow-y:auto}.log-item{border:1px solid var(--border);border-left:3.5px solid var(--accent);box-shadow:var(--shadow-xs);background:#fff;border-radius:8px;padding:9px 12px;font-size:11.5px;line-height:1.45;transition:all .15s}.log-item:hover{box-shadow:var(--shadow-sm);border-color:#cbd5e1}.log-item.warning{border-left-color:var(--warning);background:#fffdf7}.log-item.error{border-left-color:var(--danger);background:#fef8f8}.log-item.success{border-left-color:var(--success);background:#f9fdfa}.log-header{color:var(--text-muted);justify-content:space-between;margin-bottom:3px;font-size:10.5px;font-weight:500;display:flex}.log-confidence{font-family:ui-monospace,SFMono-Regular,monospace;font-weight:600}.header-right{align-items:center;gap:7px;display:flex}.btn-icon{border:1px solid var(--border);color:var(--text-muted);cursor:pointer;box-shadow:var(--shadow-xs);background:#fff;border-radius:8px;justify-content:center;align-items:center;padding:5px 7px;font-size:13px;line-height:1;transition:all .15s;display:inline-flex}.btn-icon:hover{background:var(--bg-muted);color:var(--text-primary);border-color:#cbd5e1}.api-key-banner{box-shadow:var(--shadow-xs);background:#fffbeb;border:1px solid #fde68a;border-radius:10px;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;display:flex}.code-stepper-wrapper{background:#090d16;border:1px solid #1e293b;border-radius:8px;max-height:180px;font-family:JetBrains Mono,ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;line-height:1.6;position:relative;overflow-y:auto}.code-line-row{white-space:pre;padding:0 4px;transition:background .15s,border-color .15s;display:flex}.code-line-num{color:#475569;text-align:right;user-select:none;border-right:1px solid #1e293b;flex-shrink:0;width:28px;margin-right:6px;padding-right:6px}.code-line-text{color:#cbd5e1;flex:1;overflow-x:auto}.code-line-row.active-line{background:#6366f147;border-left:3px solid #818cf8;margin-left:-3px}.code-line-row.active-line .code-line-num{color:#818cf8;font-weight:700}.code-line-row.active-line .code-line-text{color:#fff;text-shadow:0 0 8px #818cf899;font-weight:600}</style>
   <script type="module" crossorigin src="../../assets/sidepanel.js"></script>
 </head>
 <body>
   <header>
     <div class="brand">
-      <svg width="22" height="22" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 5px; flex-shrink: 0;">
-        <rect width="128" height="128" rx="28" fill="#090d16"/>
+      <svg width="22" height="22" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 6px; flex-shrink: 0; box-shadow: var(--shadow-xs);">
+        <rect width="128" height="128" rx="28" fill="#0f172a"/>
         <path d="M34 94 L64 28 L94 94" stroke="url(#h-accent)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
         <line x1="47" y1="68" x2="81" y2="68" stroke="url(#h-accent)" stroke-width="8" stroke-linecap="round"/>
         <circle cx="64" cy="46" r="3.5" fill="#38bdf8"/>
@@ -33,7 +33,7 @@
       </div>
       <div id="statusBadge" class="status-badge status-idle">IDLE</div>
       <button id="openOptionsBtn" class="btn-icon" title="打开全局配置 (API Key / 模型设置)">⚙️</button>
-      <button id="closeSidePanelBtn" class="btn-icon" title="关闭侧边栏" style="font-size: 14px; font-weight: bold; line-height: 1; padding: 4px 7px;">✕</button>
+      <button id="closeSidePanelBtn" class="btn-icon" title="关闭侧边栏" style="font-size: 13px; font-weight: 600; line-height: 1; padding: 4px 7px;">✕</button>
     </div>
   </header>
 
@@ -41,23 +41,23 @@
     <!-- Unconfigured API Key Alert Banner -->
     <div id="apiKeyBanner" class="api-key-banner" style="display: none;">
       <div>
-        <div style="font-weight: 600; font-size: 12px; color: #fef08a;">⚠️ 未配置 TypeSafe API Key</div>
-        <div style="font-size: 11px; color: #fde68a; margin-top: 2px;">请先配置 API Key 以启用 System One 决策</div>
+        <div style="font-weight: 600; font-size: 12px; color: #92400e;">⚠️ 未配置 TypeSafe API Key</div>
+        <div style="font-size: 11px; color: #b45309; margin-top: 2px;">请先配置 API Key 以启用 System One 决策</div>
       </div>
-      <button id="bannerSettingsBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap; background: #d97706; color: #fff; border: none;">前往设置 ⚙️</button>
+      <button id="bannerSettingsBtn" class="btn-primary" style="padding: 5px 10px; font-size: 11px; white-space: nowrap; background: #d97706; border-color: #d97706; color: #fff;">前往设置 ⚙️</button>
     </div>
 
     <!-- S2 / Ollama Status Warning Banner -->
-    <div id="s2Banner" class="api-key-banner" style="display: none; background: #450a0a; border: 1px solid #dc2626;">
+    <div id="s2Banner" class="api-key-banner" style="display: none; background: #fef2f2; border: 1px solid #fecaca;">
       <div style="flex: 1; min-width: 0;">
-        <div id="s2BannerTitle" style="font-weight: 600; font-size: 12px; color: #fca5a5;">🔴 S2 (Ollama) 服务不可用</div>
-        <div id="s2BannerDesc" style="font-size: 11px; color: #fecaca; margin-top: 2px; line-height: 1.4;">
+        <div id="s2BannerTitle" style="font-weight: 600; font-size: 12px; color: #991b1b;">🔴 S2 (Ollama) 服务不可用</div>
+        <div id="s2BannerDesc" style="font-size: 11px; color: #b91c1c; margin-top: 2px; line-height: 1.4;">
           无法连接到本地 Ollama 服务。
         </div>
       </div>
       <div style="display: flex; gap: 6px; align-items: center;">
-        <button id="s2RetryBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap; background: #991b1b; color: #fff; border: none;">🔄 重试</button>
-        <button id="s2SettingsBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap; background: #334155; color: #fff; border: none;">⚙️ 设置</button>
+        <button id="s2RetryBtn" class="btn-primary" style="padding: 5px 10px; font-size: 11px; white-space: nowrap; background: #dc2626; border-color: #dc2626; color: #fff;">🔄 重试</button>
+        <button id="s2SettingsBtn" class="btn-secondary" style="padding: 5px 10px; font-size: 11px; white-space: nowrap; background: #ffffff; color: #991b1b; border-color: #fecaca;">⚙️ 设置</button>
       </div>
     </div>
 
@@ -75,25 +75,25 @@
     </div>
 
     <!-- Dynamic Workflows Card -->
-    <div class="card" id="workflowsCard" style="display: none; border-color: #6366f1;">
-      <div class="card-title" style="color: #a5b4fc; display: flex; justify-content: space-between; align-items: center;">
+    <div class="card" id="workflowsCard" style="display: none; border-color: #c7d2fe;">
+      <div class="card-title" style="color: #3730a3; display: flex; justify-content: space-between; align-items: center;">
         <span>⚡ 适用当前页面的动态工作流</span>
         <div style="display: flex; align-items: center; gap: 6px;">
-          <span style="font-size: 10px; background: #312e81; color: #c7d2fe; padding: 2px 6px; border-radius: 4px;">JS Recipe</span>
-          <button id="manageWorkflowsBtn" class="btn-icon" title="管理工作流匹配规则与脚本" style="font-size: 11px; padding: 2px 6px;">⚙️ 管理</button>
+          <span style="font-size: 10px; background: #e0e7ff; color: #3730a3; padding: 2px 7px; border-radius: 9999px; font-weight: 600; border: 1px solid #c7d2fe;">JS Recipe</span>
+          <button id="manageWorkflowsBtn" class="btn-icon" title="管理工作流匹配规则与脚本" style="font-size: 11px; padding: 3px 7px;">⚙️ 管理</button>
         </div>
       </div>
       <div id="workflowList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;"></div>
     </div>
 
     <!-- Live Workflow Code Stepper Card -->
-    <div class="card" id="codeStepperCard" style="display: none; border-color: #8b5cf6;">
-      <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+    <div class="card" id="codeStepperCard" style="display: none; border-color: #c7d2fe;">
+      <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
         <div style="display: flex; align-items: center; gap: 6px;">
-          <span style="color: #c4b5fd;">💻 动态代码执行监视 (Live Stepper)</span>
-          <span id="activeLineBadge" style="font-size: 10px; background: #312e81; color: #a5b4fc; padding: 1px 6px; border-radius: 4px; font-family: monospace;">Line --</span>
+          <span style="color: #3730a3;">💻 动态代码执行监视 (Live Stepper)</span>
+          <span id="activeLineBadge" style="font-size: 10px; background: #e0e7ff; color: #3730a3; padding: 1px 7px; border-radius: 9999px; font-family: ui-monospace, SFMono-Regular, monospace; font-weight: 600; border: 1px solid #c7d2fe;">Line --</span>
         </div>
-        <button id="toggleStepperCodeBtn" class="btn-icon" style="font-size: 10px; padding: 2px 6px;" title="收起/展开代码">收起 ⏶</button>
+        <button id="toggleStepperCodeBtn" class="btn-icon" style="font-size: 10px; padding: 2px 7px;" title="收起/展开代码">收起 ⏶</button>
       </div>
       <div id="codeStepperContent" class="code-stepper-wrapper">
         <div id="codeLinesContainer"></div>
@@ -104,23 +104,26 @@
     <div class="card" id="telemetryCard">
       <div class="card-title">
         <span>实时决策仪表盘</span>
-        <span id="stepCounter">Step: 0</span>
+        <span id="stepCounter" style="font-family: ui-monospace, SFMono-Regular, monospace; color: #4f46e5; font-weight: 600;">Step: 0</span>
       </div>
-      <div style="font-size: 11px; color: var(--text-muted);">Jev 置信度 (Confidence): <span id="confidenceValue">--</span></div>
+      <div style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+        <span>Jev 置信度 (Confidence):</span>
+        <span id="confidenceValue" style="font-weight: 600; font-family: ui-monospace, SFMono-Regular, monospace; color: var(--text-primary);">--</span>
+      </div>
       <div class="confidence-meter">
         <div id="confidenceFill" class="confidence-fill"></div>
       </div>
-      <div id="currentSubgoal" style="font-size: 12px; color: #cbd5e1; margin-top: 4px;">等待任务下发...</div>
+      <div id="currentSubgoal" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-weight: 500;">等待任务下发...</div>
     </div>
 
     <!-- Save Workflow Recipe Banner -->
-    <div id="saveWorkflowBanner" class="card" style="display: none; background: #1e1b4b; border-color: #6366f1;">
+    <div id="saveWorkflowBanner" class="card" style="display: none; background: #eef2ff; border-color: #c7d2fe;">
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
         <div style="flex: 1; min-width: 0;">
-          <div style="font-weight: 600; font-size: 12px; color: #e0e7ff;">💡 动态工作流执行完成</div>
-          <div id="saveWorkflowDesc" style="font-size: 11px; color: #c7d2fe; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">可保存为此页面的快捷 Recipe</div>
+          <div style="font-weight: 600; font-size: 12px; color: #3730a3;">💡 动态工作流执行完成</div>
+          <div id="saveWorkflowDesc" style="font-size: 11px; color: #4338ca; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">可保存为此页面的快捷 Recipe</div>
         </div>
-        <button id="saveWorkflowBtn" class="btn-primary" style="padding: 5px 10px; font-size: 11px; white-space: nowrap; background: #6366f1;">
+        <button id="saveWorkflowBtn" class="btn-primary" style="padding: 6px 12px; font-size: 11px; white-space: nowrap; background: #4f46e5; border-color: #4f46e5; color: #ffffff;">
           💾 保存为本地 Recipe
         </button>
       </div>
@@ -130,7 +133,7 @@
     <div class="card" style="flex: 1; display: flex; flex-direction: column;">
       <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
         <span>执行轨迹 (Trace)</span>
-        <button id="copyTraceBtn" class="btn-secondary" style="padding: 2px 6px; font-size: 10px;">📋 复制轨迹</button>
+        <button id="copyTraceBtn" class="btn-secondary" style="padding: 2px 8px; font-size: 10px;">📋 复制轨迹</button>
       </div>
       <div id="logList" class="log-list">
         <div style="color: var(--text-muted); font-size: 11px; text-align: center; padding: 20px;">暂无日志</div>
@@ -141,9 +144,9 @@
     <div class="card" id="debugCard">
       <div class="card-title">
         <span>页面诊断与 DOM 探查 (Debug Inspector)</span>
-        <button id="copyDebugBtn" class="btn-secondary" style="padding: 2px 6px; font-size: 10px;">📋 复制日志</button>
+        <button id="copyDebugBtn" class="btn-secondary" style="padding: 2px 8px; font-size: 10px;">📋 复制日志</button>
       </div>
-      <div id="diagnoseResult" style="font-size: 11px; color: #94a3b8; max-height: 140px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; background: #0b1120; padding: 8px; border-radius: 4px; border: 1px solid #1e293b;">
+      <div id="diagnoseResult" style="font-size: 11px; color: #334155; max-height: 140px; overflow-y: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; line-height: 1.5; white-space: pre-wrap; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
 点击上方【🔍 诊断页面】可实时探测当前标签页的 Iframes、Shadow DOM 及提取到的元素列表。
       </div>
     </div>

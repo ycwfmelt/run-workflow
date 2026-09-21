@@ -87,7 +87,7 @@ function renderWorkflowList() {
 
   if (currentWorkflows.length === 0) {
     workflowsContainer.innerHTML = `
-      <div style="color: var(--text-muted); font-size: 12px; text-align: center; padding: 24px; background: #0b1120; border-radius: 8px; border: 1px dashed #1e293b;">
+      <div style="color: var(--text-muted); font-size: 12px; text-align: center; padding: 24px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
         暂无任何工作流 Recipe，点击上方【➕ 新建自定义工作流】即可快速创建。
       </div>
     `;
@@ -103,7 +103,7 @@ function renderWorkflowList() {
     card.innerHTML = `
       <div class="wf-card-header">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-weight: 600; font-size: 13px; color: #f8fafc;">${escapeHtml(wf.meta.name)}</span>
+          <span style="font-weight: 600; font-size: 13px; color: #0f172a;">${escapeHtml(wf.meta.name)}</span>
           <span class="tag-custom">动态 Recipe</span>
         </div>
         <div style="font-size: 11px; color: #64748b; font-family: monospace;">ID: ${escapeHtml(wf.id)}</div>
@@ -137,7 +137,7 @@ function renderWorkflowList() {
         <div class="wf-save-status" style="font-size: 11px; color: var(--success); font-weight: 500;"></div>
         <div style="display: flex; gap: 8px;">
           <button type="button" class="btn-secondary copy-code-btn" style="font-size: 11px; padding: 5px 10px;">📋 复制代码</button>
-          <button type="button" class="btn-secondary delete-wf-btn" style="font-size: 11px; padding: 5px 10px; color: #fca5a5; border-color: #7f1d1d;">🗑️ 删除</button>
+          <button type="button" class="btn-secondary delete-wf-btn" style="font-size: 11px; padding: 5px 10px; color: #dc2626; border-color: #fecaca;">🗑️ 删除</button>
           <button type="button" class="btn-save save-wf-btn" style="font-size: 11px; padding: 5px 12px;">💾 保存修改</button>
         </div>
       </div>
@@ -281,14 +281,14 @@ function runUrlTest() {
   if (matched.length > 0) {
     testUrlResult.innerHTML = `
       🟢 <strong>匹配成功！</strong> 网址 <code>${escapeHtml(url)}</code> 共命中 <strong>${matched.length}</strong> 个工作流：<br>
-      <span style="color: #cbd5e1; margin-top: 4px; display: inline-block;">
+      <span style="color: #1e3a8a; margin-top: 4px; display: inline-block;">
         ${matched.map((m) => `• <strong>${escapeHtml(m.meta.name)}</strong> (规则: <code>${escapeHtml(m.meta.matchUrl || "*")}</code>)`).join("<br>")}
       </span>
     `;
   } else {
     testUrlResult.innerHTML = `
       🟡 <strong>未命中任何工作流。</strong> 网址 <code>${escapeHtml(url)}</code> 当前没有匹配的 Recipe。<br>
-      <span style="color: #94a3b8;">提示：可将目标工作流的匹配规则配置为 <code>*</code>（全局），或者包含该网址的域名路径。</span>
+      <span style="color: #64748b;">提示：可将目标工作流的匹配规则配置为 <code>*</code>（全局），或者包含该网址的域名路径。</span>
     `;
   }
 }

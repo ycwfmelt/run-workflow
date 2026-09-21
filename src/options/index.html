@@ -5,25 +5,55 @@
   <title>Ang 全局参数配置</title>
   <style>
     :root {
-      --bg-primary: #0f172a;
-      --bg-secondary: #1e293b;
-      --bg-accent: #334155;
-      --text-primary: #f8fafc;
-      --text-muted: #94a3b8;
-      --primary: #8b5cf6;
-      --primary-hover: #7c3aed;
+      --bg-primary: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-muted: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+      --primary: #0f172a;
+      --primary-hover: #1e293b;
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
       --success: #10b981;
       --warning: #f59e0b;
       --danger: #ef4444;
-      --border: #334155;
+      --border: #e2e8f0;
+      --border-subtle: #f1f5f9;
+      --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+      --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
     }
 
     body {
       background-color: var(--bg-primary);
       color: var(--text-primary);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       padding: 36px 20px;
-      max-width: 760px;
+      max-width: 780px;
       margin: 0 auto;
       line-height: 1.5;
     }
@@ -34,20 +64,23 @@
 
     h1 {
       font-size: 22px;
-      color: #f8fafc;
+      font-weight: 700;
+      color: var(--text-primary);
       display: flex;
       align-items: center;
       gap: 10px;
       margin-bottom: 6px;
+      letter-spacing: -0.01em;
     }
 
     .badge-s1 {
-      background: linear-gradient(135deg, #a855f7, #6366f1);
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
       font-size: 11px;
       font-weight: 600;
       padding: 2px 8px;
       border-radius: 9999px;
-      color: #fff;
+      color: #ffffff;
+      box-shadow: 0 1px 2px rgba(99, 102, 241, 0.2);
     }
 
     .subtitle {
@@ -56,19 +89,20 @@
     }
 
     .section {
-      background: var(--bg-secondary);
+      background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 20px;
+      border-radius: 12px;
+      padding: 22px;
       margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
     }
 
     .section-title {
       font-size: 14px;
       font-weight: 600;
-      color: #cbd5e1;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 10px;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 12px;
       margin-bottom: 16px;
       display: flex;
       justify-content: space-between;
@@ -78,12 +112,12 @@
     .section-tag {
       font-size: 11px;
       padding: 2px 8px;
-      border-radius: 4px;
-      font-weight: 500;
+      border-radius: 9999px;
+      font-weight: 600;
     }
-    .tag-primary { background: #312e81; color: #c7d2fe; }
-    .tag-success { background: #064e3b; color: #a7f3d0; }
-    .tag-neutral { background: #334155; color: #94a3b8; }
+    .tag-primary { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
+    .tag-success { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .tag-neutral { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
 
     .form-group {
       margin-bottom: 16px;
@@ -91,9 +125,9 @@
 
     label {
       display: block;
-      font-size: 12px;
-      font-weight: 500;
-      color: #cbd5e1;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
       margin-bottom: 6px;
     }
 
@@ -111,19 +145,21 @@
 
     input[type="text"], input[type="password"], select {
       width: 100%;
-      background: var(--bg-primary);
+      background: #ffffff;
       border: 1px solid var(--border);
       color: var(--text-primary);
       padding: 9px 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       box-sizing: border-box;
       outline: none;
       font-size: 13px;
-      transition: border-color 0.15s ease;
+      transition: all 0.15s ease;
+      box-shadow: var(--shadow-xs);
     }
 
     input:focus, select:focus {
-      border-color: var(--primary);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
     }
 
     .toggle-pwd-btn {
@@ -136,32 +172,34 @@
       padding: 4px 6px;
       font-size: 14px;
       border-radius: 4px;
+      transition: color 0.15s ease;
     }
     .toggle-pwd-btn:hover {
       color: var(--text-primary);
     }
 
     .desc-text {
-      font-size: 11px;
+      font-size: 11.5px;
       color: var(--text-muted);
       margin-top: 5px;
-      line-height: 1.4;
+      line-height: 1.45;
     }
 
     .feature-pills {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 8px;
       margin-top: 10px;
     }
 
     .feature-pill {
-      font-size: 11px;
-      background: #0b1120;
-      border: 1px solid #1e293b;
-      padding: 4px 8px;
-      border-radius: 6px;
-      color: #94a3b8;
+      font-size: 11.5px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      padding: 5px 10px;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-weight: 500;
     }
 
     .btn-group-footer {
@@ -173,67 +211,81 @@
 
     button.btn-save {
       background: var(--primary);
-      color: white;
-      border: none;
-      padding: 10px 24px;
-      border-radius: 6px;
+      color: #ffffff;
+      border: 1px solid var(--primary);
+      padding: 10px 22px;
+      border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
       font-size: 13px;
-      transition: background 0.15s ease;
+      transition: all 0.15s ease;
+      box-shadow: var(--shadow-xs);
     }
     button.btn-save:hover {
       background: var(--primary-hover);
+      border-color: var(--primary-hover);
+    }
+    button.btn-save:active {
+      transform: scale(0.98);
     }
 
     button.btn-secondary {
-      background: var(--bg-accent);
-      color: #cbd5e1;
+      background: #ffffff;
+      color: var(--text-secondary);
       border: 1px solid var(--border);
       padding: 9px 16px;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      box-shadow: var(--shadow-xs);
     }
     button.btn-secondary:hover {
-      background: #475569;
-      color: #fff;
+      background: var(--bg-muted);
+      border-color: #cbd5e1;
+      color: var(--text-primary);
+    }
+    button.btn-secondary:active {
+      transform: scale(0.98);
     }
 
     #status {
       font-size: 13px;
       color: var(--success);
-      font-weight: 500;
+      font-weight: 600;
     }
 
     .test-feedback {
       margin-top: 8px;
-      font-size: 11px;
-      padding: 6px 10px;
-      border-radius: 4px;
+      font-size: 11.5px;
+      padding: 7px 12px;
+      border-radius: 6px;
       display: none;
     }
     .feedback-ok {
-      background: #064e3b;
-      color: #6ee7b7;
-      border: 1px solid #059669;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
     }
     .feedback-warn {
-      background: #451a03;
-      color: #fde68a;
-      border: 1px solid #b45309;
+      background: #fffbeb;
+      color: #b45309;
+      border: 1px solid #fde68a;
     }
 
     /* Workflow Manager Styles */
     .wf-card {
-      background: #0b1120;
-      border: 1px solid #1e293b;
-      border-radius: 8px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
       padding: 16px;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
+      box-shadow: var(--shadow-xs);
     }
     .wf-card:hover {
-      border-color: #475569;
+      border-color: #cbd5e1;
+      box-shadow: var(--shadow-sm);
     }
     .wf-card-header {
       display: flex;
@@ -242,25 +294,25 @@
       margin-bottom: 12px;
     }
     .tag-custom {
-      background: #064e3b;
-      color: #6ee7b7;
-      border: 1px solid #059669;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
       font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 4px;
+      padding: 2px 8px;
+      border-radius: 9999px;
       font-weight: 600;
     }
     .code-textarea {
       width: 100%;
       height: 180px;
-      background: #030712;
-      color: #a5f3fc;
+      background: #090d16;
+      color: #f8fafc;
       border: 1px solid #1e293b;
-      border-radius: 6px;
-      padding: 10px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 11.5px;
-      line-height: 1.5;
+      line-height: 1.55;
       resize: vertical;
       white-space: pre;
       tab-size: 2;
@@ -269,15 +321,16 @@
       margin-top: 6px;
     }
     .code-textarea:focus {
-      border-color: var(--primary);
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
     }
   </style>
 </head>
 <body>
   <div class="header-area">
     <h1>
-      <svg width="26" height="26" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 6px; flex-shrink: 0;">
-        <rect width="128" height="128" rx="28" fill="#090d16"/>
+      <svg width="26" height="26" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 6px; flex-shrink: 0; box-shadow: var(--shadow-xs);">
+        <rect width="128" height="128" rx="28" fill="#0f172a"/>
         <path d="M34 94 L64 28 L94 94" stroke="url(#opt-accent)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
         <line x1="47" y1="68" x2="81" y2="68" stroke="url(#opt-accent)" stroke-width="8" stroke-linecap="round"/>
         <circle cx="64" cy="46" r="3.5" fill="#38bdf8"/>
@@ -343,12 +396,12 @@
 
     <div class="form-group">
       <label>规划引擎 Provider (已固定):</label>
-      <input type="text" value="Ollama (本地/私有大模型服务)" disabled style="background: #172033; color: #94a3b8; cursor: not-allowed;" />
+      <input type="text" value="Ollama (本地/私有大模型服务)" disabled style="background: #f8fafc; color: #64748b; cursor: not-allowed; border-color: #e2e8f0;" />
     </div>
 
     <div class="form-group">
       <label>模型名称 Model (已固定):</label>
-      <input type="text" id="systemTwoModel" value="deepseek-v4.1-flash:cloud" readonly style="background: #172033; color: #93c5fd; font-family: monospace; font-weight: 500;" />
+      <input type="text" id="systemTwoModel" value="deepseek-v4.1-flash:cloud" readonly style="background: #f8fafc; color: #4f46e5; font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 600; border-color: #e2e8f0;" />
     </div>
 
     <div class="form-group">
@@ -371,7 +424,7 @@
       <span class="section-tag tag-success">固定全量启用 ✓</span>
     </div>
 
-    <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6;">
+    <div style="font-size: 12.5px; color: #334155; line-height: 1.6;">
       系统已永久锁定开启真实人类行为仿真。通过 Chrome DevTools Protocol 硬件输入层模拟，彻底规避各类企业系统及第三方反自动化风控检测：
     </div>
 
@@ -396,12 +449,12 @@
     </div>
 
     <!-- Match Rule Helper & Tester -->
-    <div style="background: #0b1120; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
-      <div style="font-weight: 600; font-size: 12px; color: #cbd5e1; margin-bottom: 6px; display: flex; justify-content: space-between;">
+    <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+      <div style="font-weight: 600; font-size: 12px; color: #0f172a; margin-bottom: 6px; display: flex; justify-content: space-between;">
         <span>🎯 URL 匹配规则说明与实时测试器</span>
-        <span style="font-size: 11px; color: #818cf8;">支持 4 种匹配语法</span>
+        <span style="font-size: 11px; color: #4f46e5; font-weight: 500;">支持 4 种匹配语法</span>
       </div>
-      <div style="font-size: 11px; color: #94a3b8; line-height: 1.6; margin-bottom: 10px;">
+      <div style="font-size: 11.5px; color: #64748b; line-height: 1.6; margin-bottom: 10px;">
         • <strong>* 或留空</strong>：全局适用（所有网址生效）<br>
         • <strong>域名/路径子串</strong>：如 <code>crm.example.com</code> 或 <code>github.com/pulls</code><br>
         • <strong>通配符 Glob</strong>：如 <code>*.example.com/*</code> 或 <code>https://*</code><br>
@@ -411,13 +464,13 @@
         <input type="text" id="testUrlInput" placeholder="输入测试网址，如: https://crm.example.com/#/dashboard" style="font-size: 12px; padding: 7px 10px;" />
         <button type="button" id="testUrlBtn" class="btn-secondary" style="white-space: nowrap; padding: 7px 12px; font-size: 12px;">测试匹配</button>
       </div>
-      <div id="testUrlResult" style="margin-top: 8px; font-size: 11px; color: #38bdf8; display: none; padding: 6px 10px; background: #030712; border-radius: 4px; border: 1px solid #1e293b;"></div>
+      <div id="testUrlResult" style="margin-top: 8px; font-size: 11.5px; color: #1e40af; display: none; padding: 8px 12px; background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe;"></div>
     </div>
 
     <!-- Workflow List Header -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-      <div style="font-size: 13px; font-weight: 600; color: #f8fafc;" id="workflowCountTitle">已配置工作流列表</div>
-      <button type="button" id="addNewWorkflowBtn" class="btn-secondary" style="background: #312e81; color: #c7d2fe; border-color: #4338ca; font-size: 12px; padding: 6px 12px; font-weight: 500;">
+      <div style="font-size: 13px; font-weight: 600; color: #0f172a;" id="workflowCountTitle">已配置工作流列表</div>
+      <button type="button" id="addNewWorkflowBtn" class="btn-primary" style="font-size: 12px; padding: 7px 14px; font-weight: 500;">
         ➕ 新建自定义工作流
       </button>
     </div>

@@ -6,31 +6,55 @@
   <title>Ang</title>
   <style>
     :root {
-      --bg-primary: #0f172a;
-      --bg-secondary: #1e293b;
-      --bg-accent: #334155;
-      --text-primary: #f8fafc;
-      --text-muted: #94a3b8;
-      --primary: #8b5cf6;
-      --primary-hover: #7c3aed;
+      --bg-primary: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-muted: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+      --primary: #0f172a;
+      --primary-hover: #1e293b;
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
       --success: #10b981;
       --warning: #f59e0b;
       --danger: #ef4444;
-      --border: #334155;
+      --border: #e2e8f0;
+      --border-subtle: #f1f5f9;
+      --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+      --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
     }
 
     body {
       background-color: var(--bg-primary);
       color: var(--text-primary);
       font-size: 13px;
-      line-height: 1.4;
+      line-height: 1.45;
       display: flex;
       flex-direction: column;
       height: 100vh;
@@ -39,77 +63,91 @@
 
     header {
       padding: 12px 14px;
-      background-color: var(--bg-secondary);
+      background-color: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      z-index: 10;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-weight: 600;
-      font-size: 14px;
+      font-weight: 700;
+      font-size: 14.5px;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
     }
 
     .brand-badge {
-      background: linear-gradient(135deg, #a855f7, #6366f1);
-      padding: 2px 6px;
-      border-radius: 4px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #ffffff;
+      padding: 2px 7px;
+      border-radius: 9999px;
       font-size: 10px;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      box-shadow: 0 1px 2px rgba(99, 102, 241, 0.2);
     }
 
     .status-badge {
       font-size: 11px;
-      padding: 3px 8px;
+      padding: 3px 9px;
       border-radius: 9999px;
-      font-weight: 500;
-      background-color: var(--bg-accent);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
     }
-    .status-idle { background: #334155; color: #94a3b8; }
-    .status-planning { background: #1e3a8a; color: #93c5fd; }
-    .status-running { background: #064e3b; color: #6ee7b7; }
-    .status-paused { background: #78350f; color: #fcd34d; }
-    .status-waiting_user { background: #831843; color: #f472b6; }
-    .status-completed { background: #064e3b; color: #34d399; }
-    .status-failed { background: #7f1d1d; color: #fca5a5; }
+    .status-idle { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+    .status-planning { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .status-running { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .status-paused { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+    .status-waiting_user { background: #fdf2f8; color: #be185d; border-color: #fbcfe8; }
+    .status-completed { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .status-failed { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
 
     .s2-badge {
       display: inline-flex;
       align-items: center;
       gap: 5px;
       font-size: 11px;
-      padding: 3px 8px;
+      padding: 3px 9px;
       border-radius: 9999px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
       user-select: none;
       border: 1px solid transparent;
     }
-    .s2-badge:hover { filter: brightness(1.15); }
+    .s2-badge:hover {
+      box-shadow: var(--shadow-xs);
+      transform: translateY(-0.5px);
+    }
     .s2-status-dot {
-      width: 6px;
-      height: 6px;
+      width: 6.5px;
+      height: 6.5px;
       border-radius: 50%;
       flex-shrink: 0;
     }
-    .s2-online { background: #064e3b; color: #6ee7b7; border-color: #059669; }
-    .s2-online .s2-status-dot { background: #10b981; box-shadow: 0 0 6px #10b981; }
-    .s2-offline { background: #7f1d1d; color: #fca5a5; border-color: #dc2626; }
+    .s2-online { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .s2-online .s2-status-dot { background: #10b981; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25); }
+    .s2-offline { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
     .s2-offline .s2-status-dot { background: #ef4444; }
-    .s2-warn { background: #78350f; color: #fcd34d; border-color: #d97706; }
+    .s2-warn { background: #fffbeb; color: #b45309; border-color: #fde68a; }
     .s2-warn .s2-status-dot { background: #f59e0b; }
-    .s2-unknown { background: #334155; color: #94a3b8; border-color: #475569; }
+    .s2-unknown { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
     .s2-unknown .s2-status-dot { background: #94a3b8; }
 
     main {
       flex: 1;
-      padding: 12px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -117,10 +155,15 @@
     }
 
     .card {
-      background-color: var(--bg-secondary);
+      background-color: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
+      border-radius: 12px;
+      padding: 13px 14px;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .card:hover {
+      border-color: #cbd5e1;
     }
 
     .card-title {
@@ -128,82 +171,111 @@
       font-weight: 600;
       color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.05em;
       margin-bottom: 8px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
 
     textarea {
       width: 100%;
-      height: 68px;
-      background-color: var(--bg-primary);
+      height: 72px;
+      background-color: #ffffff;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 8px;
       color: var(--text-primary);
-      padding: 8px;
-      font-size: 12px;
+      padding: 9px 11px;
+      font-size: 12.5px;
+      line-height: 1.5;
       resize: none;
       outline: none;
+      transition: all 0.15s ease;
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
     }
 
     textarea:focus {
-      border-color: var(--primary);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    }
+    textarea::placeholder {
+      color: var(--text-subtle);
     }
 
     .btn-group {
       display: flex;
-      gap: 6px;
-      margin-top: 8px;
+      gap: 8px;
+      margin-top: 10px;
     }
 
     button {
       cursor: pointer;
       border: none;
-      border-radius: 6px;
-      padding: 7px 12px;
+      border-radius: 8px;
+      padding: 8px 14px;
       font-size: 12px;
       font-weight: 500;
       transition: all 0.15s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 5px;
+      gap: 6px;
+      user-select: none;
+    }
+    button:active {
+      transform: scale(0.98);
     }
 
     .btn-primary {
       background-color: var(--primary);
-      color: #fff;
+      color: #ffffff;
+      border: 1px solid var(--primary);
       flex: 1;
+      box-shadow: var(--shadow-xs);
     }
-    .btn-primary:hover { background-color: var(--primary-hover); }
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+      border-color: var(--primary-hover);
+    }
 
     .btn-secondary {
-      background-color: var(--bg-accent);
+      background-color: #ffffff;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-xs);
+    }
+    .btn-secondary:hover {
+      background-color: var(--bg-muted);
+      border-color: #cbd5e1;
       color: var(--text-primary);
     }
-    .btn-secondary:hover { background-color: #475569; }
 
     .btn-danger {
-      background-color: #991b1b;
-      color: #fecaca;
+      background-color: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
     }
-    .btn-danger:hover { background-color: #b91c1c; }
+    .btn-danger:hover {
+      background-color: #fee2e2;
+      border-color: #fca5a5;
+    }
 
     /* Telemetry */
     .confidence-meter {
       height: 6px;
-      background: var(--bg-primary);
+      background: var(--bg-muted);
+      border: 1px solid var(--border);
       border-radius: 9999px;
       overflow: hidden;
-      margin: 6px 0;
+      margin: 8px 0 6px 0;
     }
 
     .confidence-fill {
       height: 100%;
       width: 0%;
       background: var(--success);
-      transition: width 0.3s ease;
+      border-radius: 9999px;
+      transition: width 0.3s ease, background 0.3s ease;
     }
 
     /* Logs timeline */
@@ -213,44 +285,64 @@
       gap: 8px;
       max-height: 280px;
       overflow-y: auto;
+      padding-right: 2px;
     }
 
     .log-item {
-      font-size: 11px;
-      padding: 8px;
-      border-radius: 6px;
-      background: var(--bg-primary);
-      border-left: 3px solid var(--primary);
+      font-size: 11.5px;
+      line-height: 1.45;
+      padding: 9px 12px;
+      border-radius: 8px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-left: 3.5px solid var(--accent);
+      box-shadow: var(--shadow-xs);
+      transition: all 0.15s ease;
+    }
+    .log-item:hover {
+      border-color: #cbd5e1;
+      box-shadow: var(--shadow-sm);
     }
 
-    .log-item.warning { border-left-color: var(--warning); }
-    .log-item.error { border-left-color: var(--danger); }
-    .log-item.success { border-left-color: var(--success); }
+    .log-item.warning {
+      border-left-color: var(--warning);
+      background: #fffdf7;
+    }
+    .log-item.error {
+      border-left-color: var(--danger);
+      background: #fef8f8;
+    }
+    .log-item.success {
+      border-left-color: var(--success);
+      background: #f9fdfa;
+    }
 
     .log-header {
       display: flex;
       justify-content: space-between;
       color: var(--text-muted);
-      font-size: 10px;
-      margin-bottom: 2px;
+      font-size: 10.5px;
+      font-weight: 500;
+      margin-bottom: 3px;
     }
 
     .log-confidence {
       font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, monospace;
     }
 
     .header-right {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
     }
 
     .btn-icon {
-      background: transparent;
+      background: #ffffff;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 8px;
       color: var(--text-muted);
-      padding: 4px 6px;
+      padding: 5px 7px;
       cursor: pointer;
       font-size: 13px;
       line-height: 1;
@@ -258,32 +350,34 @@
       align-items: center;
       justify-content: center;
       transition: all 0.15s ease;
+      box-shadow: var(--shadow-xs);
     }
     .btn-icon:hover {
-      background: var(--bg-accent);
+      background: var(--bg-muted);
       color: var(--text-primary);
-      border-color: var(--primary);
+      border-color: #cbd5e1;
     }
 
     .api-key-banner {
-      background: #451a03;
-      border: 1px solid #b45309;
-      border-radius: 8px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
       padding: 10px 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
+      box-shadow: var(--shadow-xs);
     }
 
     /* Live Code Stepper */
     .code-stepper-wrapper {
       max-height: 180px;
       overflow-y: auto;
-      background: #030712;
+      background: #090d16;
       border: 1px solid #1e293b;
-      border-radius: 6px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      border-radius: 8px;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 11px;
       line-height: 1.6;
       position: relative;
@@ -328,8 +422,8 @@
 <body>
   <header>
     <div class="brand">
-      <svg width="22" height="22" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 5px; flex-shrink: 0;">
-        <rect width="128" height="128" rx="28" fill="#090d16"/>
+      <svg width="22" height="22" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 6px; flex-shrink: 0; box-shadow: var(--shadow-xs);">
+        <rect width="128" height="128" rx="28" fill="#0f172a"/>
         <path d="M34 94 L64 28 L94 94" stroke="url(#h-accent)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
         <line x1="47" y1="68" x2="81" y2="68" stroke="url(#h-accent)" stroke-width="8" stroke-linecap="round"/>
         <circle cx="64" cy="46" r="3.5" fill="#38bdf8"/>
@@ -351,7 +445,7 @@
       </div>
       <div id="statusBadge" class="status-badge status-idle">IDLE</div>
       <button id="openOptionsBtn" class="btn-icon" title="打开全局配置 (API Key / 模型设置)">⚙️</button>
-      <button id="closeSidePanelBtn" class="btn-icon" title="关闭侧边栏" style="font-size: 14px; font-weight: bold; line-height: 1; padding: 4px 7px;">✕</button>
+      <button id="closeSidePanelBtn" class="btn-icon" title="关闭侧边栏" style="font-size: 13px; font-weight: 600; line-height: 1; padding: 4px 7px;">✕</button>
     </div>
   </header>
 
@@ -359,23 +453,23 @@
     <!-- Unconfigured API Key Alert Banner -->
     <div id="apiKeyBanner" class="api-key-banner" style="display: none;">
       <div>
-        <div style="font-weight: 600; font-size: 12px; color: #fef08a;">⚠️ 未配置 TypeSafe API Key</div>
-        <div style="font-size: 11px; color: #fde68a; margin-top: 2px;">请先配置 API Key 以启用 System One 决策</div>
+        <div style="font-weight: 600; font-size: 12px; color: #92400e;">⚠️ 未配置 TypeSafe API Key</div>
+        <div style="font-size: 11px; color: #b45309; margin-top: 2px;">请先配置 API Key 以启用 System One 决策</div>
       </div>
-      <button id="bannerSettingsBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap; background: #d97706; color: #fff; border: none;">前往设置 ⚙️</button>
+      <button id="bannerSettingsBtn" class="btn-primary" style="padding: 5px 10px; font-size: 11px; white-space: nowrap; background: #d97706; border-color: #d97706; color: #fff;">前往设置 ⚙️</button>
     </div>
 
     <!-- S2 / Ollama Status Warning Banner -->
-    <div id="s2Banner" class="api-key-banner" style="display: none; background: #450a0a; border: 1px solid #dc2626;">
+    <div id="s2Banner" class="api-key-banner" style="display: none; background: #fef2f2; border: 1px solid #fecaca;">
       <div style="flex: 1; min-width: 0;">
-        <div id="s2BannerTitle" style="font-weight: 600; font-size: 12px; color: #fca5a5;">🔴 S2 (Ollama) 服务不可用</div>
-        <div id="s2BannerDesc" style="font-size: 11px; color: #fecaca; margin-top: 2px; line-height: 1.4;">
+        <div id="s2BannerTitle" style="font-weight: 600; font-size: 12px; color: #991b1b;">🔴 S2 (Ollama) 服务不可用</div>
+        <div id="s2BannerDesc" style="font-size: 11px; color: #b91c1c; margin-top: 2px; line-height: 1.4;">
           无法连接到本地 Ollama 服务。
         </div>
       </div>
       <div style="display: flex; gap: 6px; align-items: center;">
-        <button id="s2RetryBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap; background: #991b1b; color: #fff; border: none;">🔄 重试</button>
-        <button id="s2SettingsBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap; background: #334155; color: #fff; border: none;">⚙️ 设置</button>
+        <button id="s2RetryBtn" class="btn-primary" style="padding: 5px 10px; font-size: 11px; white-space: nowrap; background: #dc2626; border-color: #dc2626; color: #fff;">🔄 重试</button>
+        <button id="s2SettingsBtn" class="btn-secondary" style="padding: 5px 10px; font-size: 11px; white-space: nowrap; background: #ffffff; color: #991b1b; border-color: #fecaca;">⚙️ 设置</button>
       </div>
     </div>
 
@@ -393,25 +487,25 @@
     </div>
 
     <!-- Dynamic Workflows Card -->
-    <div class="card" id="workflowsCard" style="display: none; border-color: #6366f1;">
-      <div class="card-title" style="color: #a5b4fc; display: flex; justify-content: space-between; align-items: center;">
+    <div class="card" id="workflowsCard" style="display: none; border-color: #c7d2fe;">
+      <div class="card-title" style="color: #3730a3; display: flex; justify-content: space-between; align-items: center;">
         <span>⚡ 适用当前页面的动态工作流</span>
         <div style="display: flex; align-items: center; gap: 6px;">
-          <span style="font-size: 10px; background: #312e81; color: #c7d2fe; padding: 2px 6px; border-radius: 4px;">JS Recipe</span>
-          <button id="manageWorkflowsBtn" class="btn-icon" title="管理工作流匹配规则与脚本" style="font-size: 11px; padding: 2px 6px;">⚙️ 管理</button>
+          <span style="font-size: 10px; background: #e0e7ff; color: #3730a3; padding: 2px 7px; border-radius: 9999px; font-weight: 600; border: 1px solid #c7d2fe;">JS Recipe</span>
+          <button id="manageWorkflowsBtn" class="btn-icon" title="管理工作流匹配规则与脚本" style="font-size: 11px; padding: 3px 7px;">⚙️ 管理</button>
         </div>
       </div>
       <div id="workflowList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;"></div>
     </div>
 
     <!-- Live Workflow Code Stepper Card -->
-    <div class="card" id="codeStepperCard" style="display: none; border-color: #8b5cf6;">
-      <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+    <div class="card" id="codeStepperCard" style="display: none; border-color: #c7d2fe;">
+      <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
         <div style="display: flex; align-items: center; gap: 6px;">
-          <span style="color: #c4b5fd;">💻 动态代码执行监视 (Live Stepper)</span>
-          <span id="activeLineBadge" style="font-size: 10px; background: #312e81; color: #a5b4fc; padding: 1px 6px; border-radius: 4px; font-family: monospace;">Line --</span>
+          <span style="color: #3730a3;">💻 动态代码执行监视 (Live Stepper)</span>
+          <span id="activeLineBadge" style="font-size: 10px; background: #e0e7ff; color: #3730a3; padding: 1px 7px; border-radius: 9999px; font-family: ui-monospace, SFMono-Regular, monospace; font-weight: 600; border: 1px solid #c7d2fe;">Line --</span>
         </div>
-        <button id="toggleStepperCodeBtn" class="btn-icon" style="font-size: 10px; padding: 2px 6px;" title="收起/展开代码">收起 ⏶</button>
+        <button id="toggleStepperCodeBtn" class="btn-icon" style="font-size: 10px; padding: 2px 7px;" title="收起/展开代码">收起 ⏶</button>
       </div>
       <div id="codeStepperContent" class="code-stepper-wrapper">
         <div id="codeLinesContainer"></div>
@@ -422,23 +516,26 @@
     <div class="card" id="telemetryCard">
       <div class="card-title">
         <span>实时决策仪表盘</span>
-        <span id="stepCounter">Step: 0</span>
+        <span id="stepCounter" style="font-family: ui-monospace, SFMono-Regular, monospace; color: #4f46e5; font-weight: 600;">Step: 0</span>
       </div>
-      <div style="font-size: 11px; color: var(--text-muted);">Jev 置信度 (Confidence): <span id="confidenceValue">--</span></div>
+      <div style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+        <span>Jev 置信度 (Confidence):</span>
+        <span id="confidenceValue" style="font-weight: 600; font-family: ui-monospace, SFMono-Regular, monospace; color: var(--text-primary);">--</span>
+      </div>
       <div class="confidence-meter">
         <div id="confidenceFill" class="confidence-fill"></div>
       </div>
-      <div id="currentSubgoal" style="font-size: 12px; color: #cbd5e1; margin-top: 4px;">等待任务下发...</div>
+      <div id="currentSubgoal" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-weight: 500;">等待任务下发...</div>
     </div>
 
     <!-- Save Workflow Recipe Banner -->
-    <div id="saveWorkflowBanner" class="card" style="display: none; background: #1e1b4b; border-color: #6366f1;">
+    <div id="saveWorkflowBanner" class="card" style="display: none; background: #eef2ff; border-color: #c7d2fe;">
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
         <div style="flex: 1; min-width: 0;">
-          <div style="font-weight: 600; font-size: 12px; color: #e0e7ff;">💡 动态工作流执行完成</div>
-          <div id="saveWorkflowDesc" style="font-size: 11px; color: #c7d2fe; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">可保存为此页面的快捷 Recipe</div>
+          <div style="font-weight: 600; font-size: 12px; color: #3730a3;">💡 动态工作流执行完成</div>
+          <div id="saveWorkflowDesc" style="font-size: 11px; color: #4338ca; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">可保存为此页面的快捷 Recipe</div>
         </div>
-        <button id="saveWorkflowBtn" class="btn-primary" style="padding: 5px 10px; font-size: 11px; white-space: nowrap; background: #6366f1;">
+        <button id="saveWorkflowBtn" class="btn-primary" style="padding: 6px 12px; font-size: 11px; white-space: nowrap; background: #4f46e5; border-color: #4f46e5; color: #ffffff;">
           💾 保存为本地 Recipe
         </button>
       </div>
@@ -448,7 +545,7 @@
     <div class="card" style="flex: 1; display: flex; flex-direction: column;">
       <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
         <span>执行轨迹 (Trace)</span>
-        <button id="copyTraceBtn" class="btn-secondary" style="padding: 2px 6px; font-size: 10px;">📋 复制轨迹</button>
+        <button id="copyTraceBtn" class="btn-secondary" style="padding: 2px 8px; font-size: 10px;">📋 复制轨迹</button>
       </div>
       <div id="logList" class="log-list">
         <div style="color: var(--text-muted); font-size: 11px; text-align: center; padding: 20px;">暂无日志</div>
@@ -459,9 +556,9 @@
     <div class="card" id="debugCard">
       <div class="card-title">
         <span>页面诊断与 DOM 探查 (Debug Inspector)</span>
-        <button id="copyDebugBtn" class="btn-secondary" style="padding: 2px 6px; font-size: 10px;">📋 复制日志</button>
+        <button id="copyDebugBtn" class="btn-secondary" style="padding: 2px 8px; font-size: 10px;">📋 复制日志</button>
       </div>
-      <div id="diagnoseResult" style="font-size: 11px; color: #94a3b8; max-height: 140px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; background: #0b1120; padding: 8px; border-radius: 4px; border: 1px solid #1e293b;">
+      <div id="diagnoseResult" style="font-size: 11px; color: #334155; max-height: 140px; overflow-y: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; line-height: 1.5; white-space: pre-wrap; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
 点击上方【🔍 诊断页面】可实时探测当前标签页的 Iframes、Shadow DOM 及提取到的元素列表。
       </div>
     </div>

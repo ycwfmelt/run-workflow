@@ -273,26 +273,27 @@ async function loadMatchingWorkflows() {
       workflowList.innerHTML = "";
       res.workflows.forEach((wf: any) => {
         const item = document.createElement("div");
-        item.style.background = "#0f172a";
-        item.style.border = "1px solid #334155";
-        item.style.borderRadius = "6px";
-        item.style.padding = "8px 10px";
+        item.style.background = "#f8fafc";
+        item.style.border = "1px solid #e2e8f0";
+        item.style.borderRadius = "8px";
+        item.style.padding = "9px 12px";
         item.style.display = "flex";
         item.style.alignItems = "center";
         item.style.justifyContent = "space-between";
         item.style.gap = "8px";
+        item.style.boxShadow = "var(--shadow-xs)";
 
         item.innerHTML = `
           <div style="flex: 1; min-width: 0;">
-            <div style="font-weight: 600; font-size: 12px; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 6px;">
+            <div style="font-weight: 600; font-size: 12px; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 6px;">
               <span>⚡ ${escapeHtml(wf.meta.name)}</span>
-              <span style="font-size: 10px; color: #a5b4fc; background: #1e1b4b; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-weight: normal;" title="匹配规则: ${escapeHtml(wf.meta.matchUrl || '*')}">${escapeHtml(wf.meta.matchUrl || "*")}</span>
+              <span style="font-size: 10px; color: #4338ca; background: #e0e7ff; padding: 1px 6px; border-radius: 9999px; font-family: ui-monospace, SFMono-Regular, monospace; font-weight: 500; border: 1px solid #c7d2fe;" title="匹配规则: ${escapeHtml(wf.meta.matchUrl || '*')}">${escapeHtml(wf.meta.matchUrl || "*")}</span>
             </div>
-            <div style="font-size: 11px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;">
+            <div style="font-size: 11px; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;">
               ${escapeHtml(wf.meta.description)}
             </div>
           </div>
-          <button class="btn-primary run-wf-btn" data-id="${wf.id}" style="padding: 4px 8px; font-size: 11px; white-space: nowrap;">
+          <button class="btn-primary run-wf-btn" data-id="${wf.id}" style="padding: 5px 10px; font-size: 11px; white-space: nowrap;">
             ▶ 运行
           </button>
         `;
@@ -457,12 +458,12 @@ function renderLogs(logs: StepLog[]) {
     item.innerHTML = `
       <div class="log-header">
         <span>#${log.stepNumber} [${time}]</span>
-        <span class="log-confidence" style="color: ${log.confidence > 0.85 ? '#10b981' : log.confidence > 0.65 ? '#f59e0b' : '#ef4444'}">
+        <span class="log-confidence" style="color: ${log.confidence > 0.85 ? '#059669' : log.confidence > 0.65 ? '#d97706' : '#dc2626'}">
           Conf: ${confPercent}%
         </span>
       </div>
-      <div style="font-weight: 500; margin-bottom: 2px;">${escapeHtml(log.subgoal)}</div>
-      <div style="color: #cbd5e1;">${escapeHtml(log.message)}</div>
+      <div style="font-weight: 600; color: #0f172a; margin-bottom: 2px;">${escapeHtml(log.subgoal)}</div>
+      <div style="color: #475569;">${escapeHtml(log.message)}</div>
     `;
     logList.appendChild(item);
   });
