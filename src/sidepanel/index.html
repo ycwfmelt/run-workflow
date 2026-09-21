@@ -62,10 +62,8 @@
     }
 
     header {
-      padding: 12px 14px;
-      background-color: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      padding: 8px 12px;
+      background-color: #ffffff;
       border-bottom: 1px solid var(--border);
       box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
       display: flex;
@@ -74,31 +72,16 @@
       z-index: 10;
     }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .brand-title {
       font-weight: 700;
-      font-size: 14.5px;
+      font-size: 13.5px;
       color: var(--text-primary);
       letter-spacing: -0.01em;
     }
 
-    .brand-badge {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: #ffffff;
-      padding: 2px 7px;
-      border-radius: 9999px;
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      box-shadow: 0 1px 2px rgba(99, 102, 241, 0.2);
-    }
-
     .status-badge {
       font-size: 11px;
-      padding: 3px 9px;
+      padding: 2px 8px;
       border-radius: 9999px;
       font-weight: 600;
       letter-spacing: 0.02em;
@@ -118,7 +101,7 @@
       align-items: center;
       gap: 5px;
       font-size: 11px;
-      padding: 3px 9px;
+      padding: 2px 8px;
       border-radius: 9999px;
       font-weight: 500;
       cursor: pointer;
@@ -128,7 +111,6 @@
     }
     .s2-badge:hover {
       box-shadow: var(--shadow-xs);
-      transform: translateY(-0.5px);
     }
     .s2-status-dot {
       width: 6.5px;
@@ -137,6 +119,7 @@
       flex-shrink: 0;
     }
     .s2-online { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .s2-online .s2-status-dot { background: #10b981; }
     .s2-online .s2-status-dot { background: #10b981; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25); }
     .s2-offline { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
     .s2-offline .s2-status-dot { background: #ef4444; }
@@ -147,20 +130,20 @@
 
     main {
       flex: 1;
-      padding: 14px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
       overflow-y: auto;
     }
 
     .card {
       background-color: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 13px 14px;
-      box-shadow: var(--shadow-sm);
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      border-radius: 8px;
+      padding: 10px 12px;
+      box-shadow: var(--shadow-xs);
+      transition: border-color 0.15s ease;
     }
     .card:hover {
       border-color: #cbd5e1;
@@ -171,8 +154,8 @@
       font-weight: 600;
       color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 8px;
+      letter-spacing: 0.03em;
+      margin-bottom: 6px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -180,14 +163,14 @@
 
     textarea {
       width: 100%;
-      height: 72px;
+      height: 60px;
       background-color: #ffffff;
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 6px;
       color: var(--text-primary);
-      padding: 9px 11px;
-      font-size: 12.5px;
-      line-height: 1.5;
+      padding: 7px 9px;
+      font-size: 12px;
+      line-height: 1.45;
       resize: none;
       outline: none;
       transition: all 0.15s ease;
@@ -204,15 +187,15 @@
 
     .btn-group {
       display: flex;
-      gap: 8px;
-      margin-top: 10px;
+      gap: 6px;
+      margin-top: 8px;
     }
 
     button {
       cursor: pointer;
       border: none;
-      border-radius: 8px;
-      padding: 8px 14px;
+      border-radius: 6px;
+      padding: 6px 12px;
       font-size: 12px;
       font-weight: 500;
       transition: all 0.15s ease;
@@ -415,37 +398,22 @@
     .code-line-row.active-line .code-line-text {
       color: #ffffff;
       font-weight: 600;
-      text-shadow: 0 0 8px rgba(129, 140, 248, 0.6);
     }
   </style>
 </head>
 <body>
   <header>
-    <div class="brand">
-      <svg width="22" height="22" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 6px; flex-shrink: 0; box-shadow: var(--shadow-xs);">
-        <rect width="128" height="128" rx="28" fill="#0f172a"/>
-        <path d="M34 94 L64 28 L94 94" stroke="url(#h-accent)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-        <line x1="47" y1="68" x2="81" y2="68" stroke="url(#h-accent)" stroke-width="8" stroke-linecap="round"/>
-        <circle cx="64" cy="46" r="3.5" fill="#38bdf8"/>
-        <defs>
-          <linearGradient id="h-accent" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#8b5cf6"/>
-            <stop offset="60%" stop-color="#6366f1"/>
-            <stop offset="100%" stop-color="#06b6d4"/>
-          </linearGradient>
-        </defs>
-      </svg>
-      <span>Ang</span>
-      <span class="brand-badge">Pilot</span>
-    </div>
-    <div class="header-right">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="brand-title">Ang</span>
+      <div id="statusBadge" class="status-badge status-idle">IDLE</div>
       <div id="s2StatusBadge" class="s2-badge s2-unknown" title="S2 (Ollama) 模型服务状态，点击刷新检测">
         <span class="s2-status-dot"></span>
         <span id="s2StatusText">S2: 检测中...</span>
       </div>
-      <div id="statusBadge" class="status-badge status-idle">IDLE</div>
-      <button id="openOptionsBtn" class="btn-icon" title="打开全局配置 (API Key / 模型设置)">⚙️</button>
-      <button id="closeSidePanelBtn" class="btn-icon" title="关闭侧边栏" style="font-size: 13px; font-weight: 600; line-height: 1; padding: 4px 7px;">✕</button>
+    </div>
+    <div class="header-right">
+      <button id="openOptionsBtn" class="btn-icon" title="设置 (API Key / 模型配置)">⚙️</button>
+      <button id="closeSidePanelBtn" class="btn-icon" title="关闭侧边栏" style="font-size: 12px; line-height: 1; padding: 4px 6px;">✕</button>
     </div>
   </header>
 
@@ -456,111 +424,108 @@
         <div style="font-weight: 600; font-size: 12px; color: #92400e;">⚠️ 未配置 TypeSafe API Key</div>
         <div style="font-size: 11px; color: #b45309; margin-top: 2px;">请先配置 API Key 以启用 System One 决策</div>
       </div>
-      <button id="bannerSettingsBtn" class="btn-primary" style="padding: 5px 10px; font-size: 11px; white-space: nowrap; background: #d97706; border-color: #d97706; color: #fff;">前往设置 ⚙️</button>
+      <button id="bannerSettingsBtn" class="btn-primary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap; background: #d97706; border-color: #d97706; color: #fff;">前往设置 ⚙️</button>
     </div>
 
     <!-- S2 / Ollama Status Warning Banner -->
     <div id="s2Banner" class="api-key-banner" style="display: none; background: #fef2f2; border: 1px solid #fecaca;">
       <div style="flex: 1; min-width: 0;">
-        <div id="s2BannerTitle" style="font-weight: 600; font-size: 12px; color: #991b1b;">🔴 S2 (Ollama) 服务不可用</div>
+        <div id="s2BannerTitle" style="font-weight: 600; font-size: 12px; color: #991b1b;">🔴 S2 服务不可用</div>
         <div id="s2BannerDesc" style="font-size: 11px; color: #b91c1c; margin-top: 2px; line-height: 1.4;">
           无法连接到本地 Ollama 服务。
         </div>
       </div>
       <div style="display: flex; gap: 6px; align-items: center;">
-        <button id="s2RetryBtn" class="btn-primary" style="padding: 5px 10px; font-size: 11px; white-space: nowrap; background: #dc2626; border-color: #dc2626; color: #fff;">🔄 重试</button>
-        <button id="s2SettingsBtn" class="btn-secondary" style="padding: 5px 10px; font-size: 11px; white-space: nowrap; background: #ffffff; color: #991b1b; border-color: #fecaca;">⚙️ 设置</button>
+        <button id="s2RetryBtn" class="btn-primary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap; background: #dc2626; border-color: #dc2626; color: #fff;">重试</button>
+        <button id="s2SettingsBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap; background: #ffffff; color: #991b1b; border-color: #fecaca;">设置</button>
       </div>
     </div>
 
     <!-- Task Input Card -->
     <div class="card">
-      <div class="card-title">自然语言任务目标</div>
-      <textarea id="taskPrompt" placeholder="例如：在 Google 搜索 typesafe ai 并点击进入第一条结果..."></textarea>
+      <div class="card-title">任务目标</div>
+      <textarea id="taskPrompt" placeholder="输入自动化任务，例如：在 Google 搜索 typesafe ai 并点击第一条结果..."></textarea>
       <div class="btn-group">
-        <button id="startBtn" class="btn-primary">🚀 启动自动化</button>
-        <button id="diagnoseBtn" class="btn-secondary" title="扫描当前网页的 Iframe、Shadow DOM 及所有交互元素">🔍 诊断页面</button>
-        <button id="pauseBtn" class="btn-secondary" style="display: none;">⏸ 暂停</button>
-        <button id="resumeBtn" class="btn-secondary" style="display: none;">▶ 继续</button>
-        <button id="stopBtn" class="btn-danger" style="display: none;">⏹ 停止</button>
+        <button id="startBtn" class="btn-primary">启动自动化</button>
+        <button id="diagnoseBtn" class="btn-secondary" title="扫描当前网页的 Iframe、Shadow DOM 及交互元素">页面诊断</button>
+        <button id="pauseBtn" class="btn-secondary" style="display: none;">暂停</button>
+        <button id="resumeBtn" class="btn-secondary" style="display: none;">继续</button>
+        <button id="stopBtn" class="btn-danger" style="display: none;">停止</button>
       </div>
     </div>
 
     <!-- Dynamic Workflows Card -->
     <div class="card" id="workflowsCard" style="display: none; border-color: #c7d2fe;">
       <div class="card-title" style="color: #3730a3; display: flex; justify-content: space-between; align-items: center;">
-        <span>⚡ 适用当前页面的动态工作流</span>
+        <span>适用工作流 (Recipes)</span>
         <div style="display: flex; align-items: center; gap: 6px;">
-          <span style="font-size: 10px; background: #e0e7ff; color: #3730a3; padding: 2px 7px; border-radius: 9999px; font-weight: 600; border: 1px solid #c7d2fe;">JS Recipe</span>
-          <button id="manageWorkflowsBtn" class="btn-icon" title="管理工作流匹配规则与脚本" style="font-size: 11px; padding: 3px 7px;">⚙️ 管理</button>
+          <span style="font-size: 10px; background: #e0e7ff; color: #3730a3; padding: 1px 6px; border-radius: 9999px; font-weight: 600; border: 1px solid #c7d2fe;">Recipe</span>
+          <button id="manageWorkflowsBtn" class="btn-icon" title="管理工作流匹配规则与脚本" style="font-size: 11px; padding: 2px 6px;">⚙️ 管理</button>
         </div>
       </div>
-      <div id="workflowList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;"></div>
+      <div id="workflowList" style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px;"></div>
     </div>
 
     <!-- Live Workflow Code Stepper Card -->
     <div class="card" id="codeStepperCard" style="display: none; border-color: #c7d2fe;">
-      <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
         <div style="display: flex; align-items: center; gap: 6px;">
-          <span style="color: #3730a3;">💻 动态代码执行监视 (Live Stepper)</span>
-          <span id="activeLineBadge" style="font-size: 10px; background: #e0e7ff; color: #3730a3; padding: 1px 7px; border-radius: 9999px; font-family: ui-monospace, SFMono-Regular, monospace; font-weight: 600; border: 1px solid #c7d2fe;">Line --</span>
+          <span style="color: #3730a3;">代码执行监视</span>
+          <span id="activeLineBadge" style="font-size: 10px; background: #e0e7ff; color: #3730a3; padding: 1px 6px; border-radius: 9999px; font-family: ui-monospace, SFMono-Regular, monospace; font-weight: 600; border: 1px solid #c7d2fe;">Line --</span>
         </div>
-        <button id="toggleStepperCodeBtn" class="btn-icon" style="font-size: 10px; padding: 2px 7px;" title="收起/展开代码">收起 ⏶</button>
+        <button id="toggleStepperCodeBtn" class="btn-icon" style="font-size: 10px; padding: 2px 6px;" title="收起/展开代码">收起 ⏶</button>
       </div>
       <div id="codeStepperContent" class="code-stepper-wrapper">
         <div id="codeLinesContainer"></div>
       </div>
     </div>
 
-    <!-- Live Telemetry Card -->
-    <div class="card" id="telemetryCard">
-      <div class="card-title">
-        <span>实时决策仪表盘</span>
-        <span id="stepCounter" style="font-family: ui-monospace, SFMono-Regular, monospace; color: #4f46e5; font-weight: 600;">Step: 0</span>
+    <!-- Active Execution Telemetry (Only shown during task execution) -->
+    <div class="card" id="telemetryCard" style="display: none; padding: 8px 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+        <span id="stepCounter" style="font-family: ui-monospace, SFMono-Regular, monospace; font-weight: 600; color: #4f46e5;">Step: 0</span>
+        <span style="color: var(--text-muted);">置信度: <strong id="confidenceValue" style="color: var(--text-primary); font-family: ui-monospace, SFMono-Regular, monospace;">--</strong></span>
       </div>
-      <div style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
-        <span>Jev 置信度 (Confidence):</span>
-        <span id="confidenceValue" style="font-weight: 600; font-family: ui-monospace, SFMono-Regular, monospace; color: var(--text-primary);">--</span>
-      </div>
-      <div class="confidence-meter">
+      <div class="confidence-meter" style="margin: 4px 0;">
         <div id="confidenceFill" class="confidence-fill"></div>
       </div>
-      <div id="currentSubgoal" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-weight: 500;">等待任务下发...</div>
+      <div id="currentSubgoal" style="font-size: 11.5px; color: var(--text-secondary); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">准备就绪</div>
     </div>
 
     <!-- Save Workflow Recipe Banner -->
     <div id="saveWorkflowBanner" class="card" style="display: none; background: #eef2ff; border-color: #c7d2fe;">
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
         <div style="flex: 1; min-width: 0;">
-          <div style="font-weight: 600; font-size: 12px; color: #3730a3;">💡 动态工作流执行完成</div>
+          <div style="font-weight: 600; font-size: 12px; color: #3730a3;">动态工作流执行完成</div>
           <div id="saveWorkflowDesc" style="font-size: 11px; color: #4338ca; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">可保存为此页面的快捷 Recipe</div>
         </div>
-        <button id="saveWorkflowBtn" class="btn-primary" style="padding: 6px 12px; font-size: 11px; white-space: nowrap; background: #4f46e5; border-color: #4f46e5; color: #ffffff;">
-          💾 保存为本地 Recipe
+        <button id="saveWorkflowBtn" class="btn-primary" style="padding: 5px 10px; font-size: 11px; white-space: nowrap; background: #4f46e5; border-color: #4f46e5; color: #ffffff;">
+          保存为本地 Recipe
         </button>
       </div>
     </div>
 
     <!-- Log Stream Card -->
-    <div class="card" style="flex: 1; display: flex; flex-direction: column;">
-      <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
-        <span>执行轨迹 (Trace)</span>
-        <button id="copyTraceBtn" class="btn-secondary" style="padding: 2px 8px; font-size: 10px;">📋 复制轨迹</button>
+    <div class="card" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+      <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span>执行轨迹</span>
+        <button id="copyTraceBtn" class="btn-secondary" style="padding: 2px 8px; font-size: 10px;">📋 复制</button>
       </div>
-      <div id="logList" class="log-list">
-        <div style="color: var(--text-muted); font-size: 11px; text-align: center; padding: 20px;">暂无日志</div>
+      <div id="logList" class="log-list" style="flex: 1;">
+        <div style="color: var(--text-muted); font-size: 11px; text-align: center; padding: 24px;">暂无日志</div>
       </div>
     </div>
 
-    <!-- Debug Inspector Card -->
-    <div class="card" id="debugCard">
-      <div class="card-title">
-        <span>页面诊断与 DOM 探查 (Debug Inspector)</span>
-        <button id="copyDebugBtn" class="btn-secondary" style="padding: 2px 8px; font-size: 10px;">📋 复制日志</button>
+    <!-- Debug Inspector Card (Shown on demand) -->
+    <div class="card" id="debugCard" style="display: none;">
+      <div class="card-title" style="margin-bottom: 6px;">
+        <span>页面诊断与 DOM 探查</span>
+        <div style="display: flex; gap: 6px;">
+          <button id="copyDebugBtn" class="btn-secondary" style="padding: 2px 8px; font-size: 10px;">📋 复制</button>
+          <button id="closeDebugBtn" class="btn-secondary" style="padding: 2px 8px; font-size: 10px;">✕ 关闭</button>
+        </div>
       </div>
-      <div id="diagnoseResult" style="font-size: 11px; color: #334155; max-height: 140px; overflow-y: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; line-height: 1.5; white-space: pre-wrap; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
-点击上方【🔍 诊断页面】可实时探测当前标签页的 Iframes、Shadow DOM 及提取到的元素列表。
-      </div>
+      <div id="diagnoseResult" style="font-size: 11px; color: #334155; max-height: 160px; overflow-y: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; line-height: 1.45; white-space: pre-wrap; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);"></div>
     </div>
 
   </main>

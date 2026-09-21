@@ -9,13 +9,16 @@ const pauseBtn = document.getElementById("pauseBtn") as HTMLButtonElement;
 const resumeBtn = document.getElementById("resumeBtn") as HTMLButtonElement;
 const stopBtn = document.getElementById("stopBtn") as HTMLButtonElement;
 
+const telemetryCard = document.getElementById("telemetryCard") as HTMLElement;
 const stepCounter = document.getElementById("stepCounter") as HTMLElement;
 const confidenceValue = document.getElementById("confidenceValue") as HTMLElement;
 const confidenceFill = document.getElementById("confidenceFill") as HTMLElement;
 const currentSubgoal = document.getElementById("currentSubgoal") as HTMLElement;
 const logList = document.getElementById("logList") as HTMLElement;
+const debugCard = document.getElementById("debugCard") as HTMLElement;
 const diagnoseBtn = document.getElementById("diagnoseBtn") as HTMLButtonElement;
 const copyDebugBtn = document.getElementById("copyDebugBtn") as HTMLButtonElement;
+const closeDebugBtn = document.getElementById("closeDebugBtn") as HTMLButtonElement;
 const diagnoseResult = document.getElementById("diagnoseResult") as HTMLElement;
 let currentDiagnosticsText = "";
 
@@ -356,6 +359,10 @@ stopBtn.addEventListener("click", () => {
 });
 
 diagnoseBtn.addEventListener("click", () => {
+  if (debugCard) {
+    debugCard.style.display = "block";
+    debugCard.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
   diagnoseResult.textContent = "正在深度扫描当前标签页 DOM、Iframes 及 Shadow Roots...";
   chrome.runtime.sendMessage({ type: "DIAGNOSE_PAGE" }, (response) => {
     if (chrome.runtime.lastError) {
@@ -392,12 +399,16 @@ diagnoseBtn.addEventListener("click", () => {
   });
 });
 
+closeDebugBtn?.addEventListener("click", () => {
+  if (debugCard) debugCard.style.display = "none";
+});
+
 copyDebugBtn.addEventListener("click", () => {
   const text = currentDiagnosticsText || diagnoseResult.textContent || "";
   navigator.clipboard.writeText(text).then(() => {
     copyDebugBtn.textContent = "已复制 ✓";
     setTimeout(() => {
-      copyDebugBtn.textContent = "📋 复制日志";
+      copyDebugBtn.textContent = "📋 复制";
     }, 1500);
   });
 });
@@ -408,7 +419,7 @@ copyTraceBtn?.addEventListener("click", () => {
   if (items.length === 0) {
     copyTraceBtn.textContent = "暂无日志";
     setTimeout(() => {
-      copyTraceBtn.textContent = "📋 复制轨迹";
+      copyTraceBtn.textContent = "📋 复制";
     }, 1200);
     return;
   }
@@ -421,7 +432,7 @@ copyTraceBtn?.addEventListener("click", () => {
   navigator.clipboard.writeText(chunks.join("\n\n")).then(() => {
     copyTraceBtn.textContent = "已复制 ✓";
     setTimeout(() => {
-      copyTraceBtn.textContent = "📋 复制轨迹";
+      copyTraceBtn.textContent = "📋 复制";
     }, 1500);
   });
 });
@@ -438,6 +449,10 @@ function updateUIStatus(status: TaskStatus) {
   pauseBtn.style.display = isBusy && !isPaused ? "inline-flex" : "none";
   resumeBtn.style.display = isPaused ? "inline-flex" : "none";
   stopBtn.style.display = isBusy || isPaused ? "inline-flex" : "none";
+
+  if (telemetryCard) {
+    telemetryCard.style.display = isBusy || isPaused ? "block" : "none";
+  }
 }
 
 // Render logs
