@@ -97,40 +97,17 @@ function isInteractive(el: HTMLElement): boolean {
   ];
   if (role && interactiveRoles.includes(role)) return true;
 
-  // Modern enterprise UI framework component triggers:
-  // Ant Design (ant-), Alibaba Fusion Design (next-), Element Plus (el-), Semi Design (semi-), Arco Design (arco-), TDesign (t-)
-  const classStr = typeof el.className === "string" ? el.className : "";
-  if (
-    classStr.includes("ant-menu-item") ||
-    classStr.includes("el-menu-item") ||
-    classStr.includes("next-menu-item") ||
-    classStr.includes("next-nav-item") ||
-    classStr.includes("next-menu-sub-menu") ||
-    classStr.includes("next-tree-node") ||
-    classStr.includes("semi-navigation-item") ||
-    classStr.includes("arco-menu-item") ||
-    classStr.includes("t-menu__item") ||
-    /menu[-_]item|nav[-_]item|sidebar[-_]item|submenu/i.test(classStr) ||
-    classStr.includes("ant-select-selector") ||
-    classStr.includes("el-select__wrapper") ||
-    classStr.includes("next-select") ||
-    classStr.includes("ant-dropdown-trigger") ||
-    classStr.includes("el-dropdown-link") ||
-    classStr.includes("ant-btn") ||
-    classStr.includes("el-button") ||
-    classStr.includes("next-btn")
-  ) {
-    return true;
-  }
+  // Standard ARIA interactive capabilities (e.g. expandable menus, submenus, comboboxes)
+  if (el.hasAttribute("aria-haspopup") || el.hasAttribute("aria-expanded")) return true;
 
   // Custom interaction attributes
   if (el.isContentEditable) return true;
-  if (el.hasAttribute("onclick")) return true;
+  if (el.hasAttribute("onclick") || typeof (el as any).onclick === "function") return true;
 
   const tabindex = el.getAttribute("tabindex");
   if (tabindex !== null && parseInt(tabindex, 10) >= 0) return true;
 
-  // Pointer cursor check
+  // Pointer cursor check (universal across all frameworks and websites)
   const style = window.getComputedStyle(el);
   if (style.cursor === "pointer") {
     return true;
@@ -206,15 +183,11 @@ function extractElementText(el: HTMLElement): string {
   }
 
   // Contextualize table rows: e.g. "Action (行数据: Cell1 | Cell2 | Cell3)"
-  // Support traditional <tr> and modern div/flex/grid tables with role="row" or UI classes
-  const tr = el.closest(
-    "tr, [role='row'], .ant-table-row, .el-table__row, .next-table-row, [class*='table-row'], [class*='TableRow'], [class*='data-row']"
-  );
+  // Support standard <tr> and modern WAI-ARIA grid/table rows
+  const tr = el.closest("tr, [role='row']");
   if (tr) {
     const cells = Array.from(
-      tr.querySelectorAll(
-        "td, th, [role='cell'], [role='gridcell'], .ant-table-cell, .el-table__cell, .next-table-cell, [class*='cell']"
-      )
+      tr.querySelectorAll("td, th, [role='cell'], [role='gridcell']")
     )
       .filter((td) => !td.contains(el))
       .map((td) => cleanText(td.textContent || ""))
@@ -225,25 +198,20 @@ function extractElementText(el: HTMLElement): string {
     }
   }
 
-  // Contextualize form items: e.g. "[Field Label] Placeholder/Input"
-  const formItem = el.closest(".ant-form-item, .el-form-item, .next-form-item, .form-group, .form-item");
-  if (formItem) {
-    const labelEl = formItem.querySelector("label, .ant-form-item-label, .el-form-item__label, .next-form-item-label");
-    if (labelEl && !labelEl.contains(el)) {
-      const labelText = cleanText(labelEl.textContent || "");
-      if (labelText) {
-        return mainText ? `[${labelText}] ${mainText}` : `[${labelText}]`;
-      }
+  // Contextualize form items via standard <label>, <fieldset>, or aria-labelledby
+  const labelEl = el.closest("label") || (el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`) : null);
+  if (labelEl && !labelEl.contains(el)) {
+    const labelText = cleanText(labelEl.textContent || "");
+    if (labelText) {
+      return mainText ? `[${labelText}] ${mainText}` : `[${labelText}]`;
     }
   }
 
-  // Contextualize modal dialog items: e.g. "确认 (弹窗提示: 确认通过吗？)"
-  const dialog = el.closest(
-    ".ant-modal, .ant-modal-confirm, .el-dialog, .el-message-box, .next-dialog, .next-overlay-wrapper, [role='dialog'], .modal"
-  );
+  // Contextualize modal dialog items via standard <dialog> or role="dialog" / "alertdialog"
+  const dialog = el.closest("dialog, [role='dialog'], [role='alertdialog']");
   if (dialog) {
     const titleEl = dialog.querySelector(
-      ".ant-modal-confirm-title, .ant-modal-title, .el-dialog__title, .el-message-box__title, .next-dialog-header, .modal-title, [class*='title'], h1, h2, h3, h4"
+      "h1, h2, h3, h4, [role='heading'], [class*='title'], [class*='header']"
     );
     let titleText = titleEl ? cleanText(titleEl.textContent || "") : "";
     if (!titleText) {
@@ -418,26 +386,20 @@ export function extractInteractiveElements(): PageState {
         "switch",
         "combobox",
         "treeitem",
+        "listitem",
       ].includes(role)
     ) {
       return true;
     }
-    const classStr = typeof el.className === "string" ? el.className : "";
-    if (
-      classStr.includes("ant-menu-item") ||
-      classStr.includes("el-menu-item") ||
-      classStr.includes("next-menu-item") ||
-      classStr.includes("next-nav-item") ||
-      classStr.includes("next-menu-sub-menu") ||
-      classStr.includes("next-tree-node") ||
-      /menu[-_]item|nav[-_]item|sidebar[-_]item/i.test(classStr) ||
-      classStr.includes("ant-select-selector") ||
-      classStr.includes("el-select__wrapper") ||
-      classStr.includes("next-select") ||
-      classStr.includes("ant-btn") ||
-      classStr.includes("el-button") ||
-      classStr.includes("next-btn")
-    ) {
+    if (el.hasAttribute("aria-haspopup") || el.hasAttribute("aria-expanded")) {
+      return true;
+    }
+    const tabindex = el.getAttribute("tabindex");
+    if (tabindex !== null && parseInt(tabindex, 10) >= 0) {
+      return true;
+    }
+    const style = window.getComputedStyle(el);
+    if (style.cursor === "pointer") {
       return true;
     }
     return false;
@@ -471,19 +433,16 @@ export function extractInteractiveElements(): PageState {
   // Detect active modal / confirmation dialog
   let activeModalInfo: { isOpen: boolean; title: string } | undefined = undefined;
   const modalEl = document.querySelector<HTMLElement>(
-    ".ant-modal-confirm, .ant-modal-content, .el-dialog__wrapper, .el-message-box__wrapper, [role='dialog'], dialog[open]"
+    "dialog[open], [role='dialog'][aria-modal='true'], [role='dialog'], [role='alertdialog']"
   );
 
   if (modalEl && isVisible(modalEl, { x: 0, y: 0 })) {
     const titleEl = modalEl.querySelector(
-      ".ant-modal-confirm-title, .ant-modal-title, .el-dialog__title, .el-message-box__title, [class*='title'], h1, h2, h3, h4"
+      "h1, h2, h3, h4, [role='heading'], [class*='title'], [class*='header']"
     );
     let modalTitle = titleEl ? cleanText(titleEl.textContent || "") : "";
     if (!modalTitle) {
-      const contentEl = modalEl.querySelector(
-        ".ant-modal-confirm-content, .el-message-box__message, .ant-modal-body, .modal-body"
-      );
-      if (contentEl) modalTitle = cleanText(contentEl.textContent || "");
+      modalTitle = cleanText(modalEl.getAttribute("aria-label") || modalEl.innerText || "").slice(0, 40);
     }
     activeModalInfo = {
       isOpen: true,
