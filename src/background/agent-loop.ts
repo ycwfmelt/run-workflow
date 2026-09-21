@@ -244,8 +244,13 @@ export class AgentLoop {
           this.log("工作流合成", "success", 1.0, `✨ S2 已将真实执行轨迹合成可复用 Recipe！`);
           this.broadcastState();
         } else {
-          this.status = "completed";
-          this.log("任务结束", "warning", 1.0, "未执行任何页面状态转移操作");
+          this.status = "failed";
+          this.log(
+            "任务未完成",
+            "warning",
+            0.0,
+            "未在当前页面上找到可推进目标的状态转移路径（0 个执行步骤）。请确认页面是否已完全加载，或点击【🔍 诊断页面】排查。"
+          );
           this.broadcastState();
         }
       }

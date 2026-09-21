@@ -96,7 +96,21 @@ function isInteractive(el: HTMLElement): boolean {
     "treeitem",
   ];
   if (role && interactiveRoles.includes(role)) return true;
-  if (el.classList.contains("ant-menu-item") || el.classList.contains("el-menu-item")) return true;
+
+  // Modern UI framework component triggers (AntD, Element Plus, Semi, Arco, etc.)
+  const classStr = typeof el.className === "string" ? el.className : "";
+  if (
+    classStr.includes("ant-menu-item") ||
+    classStr.includes("el-menu-item") ||
+    classStr.includes("ant-select-selector") ||
+    classStr.includes("el-select__wrapper") ||
+    classStr.includes("ant-dropdown-trigger") ||
+    classStr.includes("el-dropdown-link") ||
+    classStr.includes("ant-btn") ||
+    classStr.includes("el-button")
+  ) {
+    return true;
+  }
 
   // Custom interaction attributes
   if (el.isContentEditable) return true;
@@ -126,8 +140,15 @@ function cleanText(text: string): string {
 function extractElementText(el: HTMLElement): string {
   let mainText = "";
   const ariaLabel = el.getAttribute("aria-label");
+  const dataTooltip =
+    el.getAttribute("data-tooltip") ||
+    el.getAttribute("data-title") ||
+    el.getAttribute("data-original-title");
+
   if (ariaLabel && ariaLabel.trim()) {
     mainText = cleanText(ariaLabel);
+  } else if (dataTooltip && dataTooltip.trim()) {
+    mainText = cleanText(dataTooltip);
   } else if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
     mainText = cleanText(el.value || el.placeholder || "");
   } else {
@@ -139,20 +160,56 @@ function extractElementText(el: HTMLElement): string {
       if (img && img.alt) {
         mainText = cleanText(img.alt);
       } else {
-        mainText = cleanText(el.innerText || el.textContent || "");
+        // Also check if an inner SVG has title or aria-label
+        const svg = el.querySelector("svg");
+        const svgTitle = svg?.querySelector("title")?.textContent;
+        const svgAria = svg?.getAttribute("aria-label");
+        if (svgTitle && svgTitle.trim()) {
+          mainText = cleanText(svgTitle);
+        } else if (svgAria && svgAria.trim()) {
+          mainText = cleanText(svgAria);
+        } else {
+          mainText = cleanText(el.innerText || el.textContent || "");
+        }
       }
     }
   }
 
-  // Contextualize table rows: e.g. "Action (Row data: Cell1 | Cell2)"
-  const tr = el.closest("tr");
+  // If text is still empty, inspect icon classes (common in console action columns)
+  if (!mainText) {
+    const classStr =
+      (el.className && typeof el.className === "string" ? el.className : "") +
+      " " +
+      (el.querySelector("[class]")?.className || "");
+    if (/restart|reload|refresh|redo|sync/i.test(classStr)) {
+      mainText = "重启/刷新";
+    } else if (/delete|remove|trash|destroy/i.test(classStr)) {
+      mainText = "删除";
+    } else if (/edit|modify|update/i.test(classStr)) {
+      mainText = "编辑";
+    } else if (/more|ellipsis|dots|action/i.test(classStr)) {
+      mainText = "更多操作";
+    } else if (/search/i.test(classStr)) {
+      mainText = "搜索";
+    }
+  }
+
+  // Contextualize table rows: e.g. "Action (行数据: Cell1 | Cell2 | Cell3)"
+  // Support traditional <tr> and modern div/flex/grid tables with role="row" or UI classes
+  const tr = el.closest(
+    "tr, [role='row'], .ant-table-row, .el-table__row, [class*='table-row'], [class*='TableRow'], [class*='data-row']"
+  );
   if (tr) {
-    const cells = Array.from(tr.querySelectorAll("td, th"))
+    const cells = Array.from(
+      tr.querySelectorAll(
+        "td, th, [role='cell'], [role='gridcell'], .ant-table-cell, .el-table__cell, [class*='cell']"
+      )
+    )
       .filter((td) => !td.contains(el))
       .map((td) => cleanText(td.textContent || ""))
-      .filter((t) => t && t.length > 0 && t.length < 35);
+      .filter((t) => t && t.length > 0 && t.length < 50);
     if (cells.length > 0) {
-      const rowInfo = cells.slice(0, 3).join(" | ");
+      const rowInfo = cells.slice(0, 6).join(" | ");
       return mainText ? `${mainText} (行数据: ${rowInfo})` : `(行数据: ${rowInfo})`;
     }
   }
@@ -348,11 +405,20 @@ export function extractInteractiveElements(): PageState {
         "checkbox",
         "radio",
         "switch",
+        "combobox",
       ].includes(role)
     ) {
       return true;
     }
-    if (el.classList.contains("ant-menu-item") || el.classList.contains("el-menu-item")) {
+    const classStr = typeof el.className === "string" ? el.className : "";
+    if (
+      classStr.includes("ant-menu-item") ||
+      classStr.includes("el-menu-item") ||
+      classStr.includes("ant-select-selector") ||
+      classStr.includes("el-select__wrapper") ||
+      classStr.includes("ant-btn") ||
+      classStr.includes("el-button")
+    ) {
       return true;
     }
     return false;
