@@ -61,16 +61,27 @@ export class CDPClient {
     }).catch(() => {});
   }
 
-  public async sendCommand<T = any>(method: string, params: Record<string, any> = {}): Promise<T> {
+  public async sendCommand<T = any>(
+    method: string,
+    params: Record<string, any> = {},
+    timeoutMs: number = 15000
+  ): Promise<T> {
     if (!this.attached) {
       await this.attach();
     }
     return new Promise((resolve, reject) => {
+      let timer: any = setTimeout(() => {
+        timer = null;
+        reject(new Error(`CDP 命令 [${method}] 执行超时 (${timeoutMs}ms)，目标页面可能处于后台休眠或被切走`));
+      }, timeoutMs);
+
       chrome.debugger.sendCommand(
         { tabId: this.tabId },
         method,
         params,
         (result: any) => {
+          if (!timer) return;
+          clearTimeout(timer);
           if (chrome.runtime.lastError) {
             reject(new Error(chrome.runtime.lastError.message));
           } else {

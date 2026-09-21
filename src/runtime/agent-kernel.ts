@@ -36,13 +36,24 @@ export class AgentKernel {
     const apiKey = config.systemTwoApiKey || config.typesafeApiKey || "ollama";
     const s2Client = createOpenAI({ baseURL: endpoint, apiKey });
 
+    // 1. Proactively activate and wake up target tab to prevent background tab sleep/freeze
+    await chrome.tabs.update(tabId, { active: true }).catch(() => {});
+    await cdp.sendCommand("Page.bringToFront").catch(() => {});
+
     hooks.onLog?.("Supervisor", "info", `🤖 S2 模型原生 A11y 树自主循环启动: "${prompt}"`);
+    hooks.onLog?.("A11y扫描", "info", "正在抓取浏览器原生无障碍语义树 (AXTree)...");
 
     // Capture initial native A11y Snapshot
     let snapshot = await A11yTreeService.captureSnapshot(cdp, tabId);
     let currentFocusRef: string = "root";
     const breadcrumbs: string[] = ["Root"];
     const deadEnds: Array<{ ref: string; reason: string }> = [];
+
+    hooks.onLog?.(
+      "A11y就绪",
+      "success",
+      `✨ 无障碍地标索引构建完成（共 ${snapshot.rootBoxes.length} 个结构地标区域，${snapshot.allInteractiveElements.length} 个交互节点），交由 S2 规划中...`
+    );
 
     const getCurrentViewText = (): string => {
       if (currentFocusRef === "root") {
@@ -81,6 +92,9 @@ Your task: "${prompt}".
       prompt: `${getSystemContext()}\n\n${getCurrentViewText()}`,
       stopWhen: isStepCount(config.maxSteps || 15),
       abortSignal,
+      onStepStart: ({ stepNumber }) => {
+        hooks.onLog?.("S2思考", "info", `🧠 S2 正在推理决策第 ${stepNumber} 步动作...`);
+      },
       tools: {
         find_in_tree: tool({
           description: "Instantly search all nodes in the A11y Tree by keyword (e.g. application name, namespace, or verb)",
@@ -198,6 +212,10 @@ Your task: "${prompt}".
             stepCount++;
             const beforeUrl = snapshot.url;
             const beforeTitle = snapshot.title;
+
+            // Auto wake up and focus target tab to prevent background tab sleep/freeze
+            await chrome.tabs.update(tabId, { active: true }).catch(() => {});
+            await cdp.sendCommand("Page.bringToFront").catch(() => {});
 
             // 1. Scroll action
             if (action === "scroll") {

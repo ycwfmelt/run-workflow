@@ -446,7 +446,10 @@
 
     <!-- Log Stream Card -->
     <div class="card" style="flex: 1; display: flex; flex-direction: column;">
-      <div class="card-title">执行轨迹 (Trace)</div>
+      <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+        <span>执行轨迹 (Trace)</span>
+        <button id="copyTraceBtn" class="btn-secondary" style="padding: 2px 6px; font-size: 10px;">📋 复制轨迹</button>
+      </div>
       <div id="logList" class="log-list">
         <div style="color: var(--text-muted); font-size: 11px; text-align: center; padding: 20px;">暂无日志</div>
       </div>

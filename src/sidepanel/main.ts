@@ -401,6 +401,30 @@ copyDebugBtn.addEventListener("click", () => {
   });
 });
 
+const copyTraceBtn = document.getElementById("copyTraceBtn") as HTMLButtonElement;
+copyTraceBtn?.addEventListener("click", () => {
+  const items = document.querySelectorAll(".log-item");
+  if (items.length === 0) {
+    copyTraceBtn.textContent = "暂无日志";
+    setTimeout(() => {
+      copyTraceBtn.textContent = "📋 复制轨迹";
+    }, 1200);
+    return;
+  }
+  const chunks: string[] = [];
+  items.forEach((item) => {
+    const header = item.querySelector(".log-header")?.textContent?.trim() || "";
+    const body = item.querySelector("div:last-child")?.textContent?.trim() || "";
+    chunks.push(`${header}\n${body}`);
+  });
+  navigator.clipboard.writeText(chunks.join("\n\n")).then(() => {
+    copyTraceBtn.textContent = "已复制 ✓";
+    setTimeout(() => {
+      copyTraceBtn.textContent = "📋 复制轨迹";
+    }, 1500);
+  });
+});
+
 // Update UI based on status
 function updateUIStatus(status: TaskStatus) {
   statusBadge.className = `status-badge status-${status}`;
